@@ -6,16 +6,19 @@ import json
 from logging import DEBUG, ERROR, basicConfig, info
 
 from pycep import __version__
-from pycep.parser import linter, extract_tar_file
+from pycep.parser import extract_tar_file
+from pycep.plugin import linter
 
 
 def value_check(value, ctx):
+    """Return boolean result from ctx parsing."""
     if not value or ctx.resilient_parsing:
         return True
     return False
 
 
 def cli(ctx, param, debug):
+    """Set command line debug level output to stdout."""
     if value_check(debug, ctx):
         return
     click.echo('Debug mode is %s' % ('on' if debug else 'off'))
@@ -29,6 +32,7 @@ def cli(ctx, param, debug):
 
 
 def print_version(ctx, param, value):
+    """Print pycep version to stdout."""
     if value_check(value, ctx):
         return
     click.echo(str(__version__))
@@ -36,6 +40,7 @@ def print_version(ctx, param, value):
 
 
 def open_input_file(input_file, file_type):
+    """Return raw data from input file string."""
     if file_type is "tar":
         input_data = extract_tar_file(input_file)
     if file_type == "json":
@@ -52,6 +57,7 @@ def open_input_file(input_file, file_type):
               is_flag=True, callback=cli, expose_value=False, is_eager=True, default=False)
 @click.option('--version', is_flag=True, callback=print_version, expose_value=False, is_eager=True)
 def pycep_cli(input_file, plugin, file_type):
+    """Pycep Command line interface."""
     if "linter" == plugin:
         info("pycep linter plugin running now...")
         linter(json.loads(open_input_file(input_file, file_type)))

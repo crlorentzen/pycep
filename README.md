@@ -54,6 +54,10 @@ When using the debug flag -d or --debug pycep will show debug level logging info
 -   Verbose logging output with debug mode
 -   Basic cep linter support for CEP 2000, 2006, and 2007
 -   Automatic requirement document support linking for failed tests
+-   Process timestamp output in debug mode
+-   Package Export level processing 
+-   Version 8+ Package module exports
+-   Docker support
 
 ### Coming Soon!
 

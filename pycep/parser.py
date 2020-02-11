@@ -8,7 +8,8 @@ from logging import error, info
 from pycep.ceps import CEPS
 
 
-def extract_tar_file(file_name: str):
+def extract_tar_file(file_name: str) -> str:
+    """Extract tar gz file from input file_name string."""
     try:
         tar_file = tarfile.open(file_name, mode="r:gz")
         json_file = tar_file.extractfile("package_export.json")
@@ -33,7 +34,8 @@ def cep_check_message(cep_number: str):
         "More info: https://simspace.github.io/cep/ceps/" + cep_number + "/#requirements"
 
 
-def get_slide_data(package_export_content_modules, values):
+def get_slide_data(package_export_content_modules: dict, values: str):
+    """Return raw data from package and package name."""
     package_value = package_export_content_modules[values]['contentModuleExportContentModule']
     package_name = package_value['name']
     raw_data = ""
@@ -50,17 +52,9 @@ def get_slide_data(package_export_content_modules, values):
     return raw_data, package_name
 
 
-def linter(raw_data: dict):
-    content_module_string = 'packageExportContentModules'
-    package_export_content_modules = get_value(content_module_string, raw_data)[content_module_string]
-    for values in package_export_content_modules:
-        raw_slide_data, package_name = get_slide_data(package_export_content_modules, values)
-        info(package_name + ": Processing slides with linter now!")
-        cep_check(raw_slide_data, package_name)
-
-
 def cep_check(raw_slide_data: str, package_name: str) -> None:
     """Return string result of content enhancement proposal test.
+
     :ivar raw_slide_data: raw data of content slide
     :raw_slide_data raw_slide_data: str
     :ivar package_name: string value of package module name
@@ -85,9 +79,7 @@ def cep_check(raw_slide_data: str, package_name: str) -> None:
 
 
 def render_list_item(slide_line: dict, heading_level: str):
-    """Return formatted list data.
-
-    """
+    """Return formatted list data."""
     raw_list_data = ""
     for node in slide_line:
         raw_list_data += heading_level + node['text']
@@ -95,6 +87,7 @@ def render_list_item(slide_line: dict, heading_level: str):
 
 
 def render_nested_list_nodes(slide_line: dict, format_string: str):
+    """Return raw list data from nested node data."""
     raw_list_data = ""
     for node in slide_line:
         if 'text' in node:
@@ -110,6 +103,7 @@ def render_nested_list_nodes(slide_line: dict, format_string: str):
 
 
 def strip_end_space(string_value: str):
+    """Remove escape character from end of input string value and return."""
     while string_value[-1:] == " ":
         string_value = string_value[:-1]
     return string_value

@@ -3,6 +3,7 @@
 
 
 def get_ceps():
+    """Return CEP test dict object."""
     cep_2000 = {"cep_number": "2000",
                 "cep_check_type": "contentModuleExportQuestionDescriptions",
                 "regex_search": "Learning Objectives:*\n*.\n.*\n.*\n"}
