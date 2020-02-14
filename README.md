@@ -16,37 +16,24 @@ The main goal of this project is to bring basic content checking features in a p
 
 ### Example cli help output
 
-    cepcli.py --help
     Usage: cepcli.py [OPTIONS]
     
+      Pycep Command line interface.
+    
     Options:
-      -f, --input_file TEXT  The Package export tar.gz file.  [required]
-      -t, --file_type TEXT   Input File type format json/tar.gz .
-      -p, --plugin TEXT      pycep function to run.  [required]
-      -d, --debug            pycep function to run.
-      --version
+      -f, --input_file TEXT  The Package export tar.gz or the json file .
+                             [required]
+      -t, --file_type TEXT   Input File type format json/tar.gz.
+      -o, --output TEXT      Output file directory.
+      -w, --word_list TEXT   Input spelling word list.
+      -p, --plugin TEXT      Plugin for pycep to run.  [required]
+      -d, --debug            Turn debug mode on.
+      --version              Print Application Version
       --help                 Show this message and exit.
 
-### Use pycep linter plugin against tar.gz export
-When not using the default mode with the linter plugin only CEP checks that don't pass will be displayed to stdout
 
-    cepcli.py -f examplepackage.tar.gz -p linter 
-    
-    ERROR:root:ELSA 0.0.0: Example pycep package content module name: CEP 2006 Test Failed! | More info: https://simspace.github.io/cep/ceps/2006/#requirements
+For more information on plugins please see [Plugin Guide](docs/PLUGINS.md)
 
-### Use pycep linter plugin against tar.gz export in debug mode
-When using the debug flag -d or --debug pycep will show debug level logging information and even display which ceps passed.
-
-    cepcli.py -f examplepackage.tar.gz -p linter -d
-    
-    Debug mode is on
-    Process Time: 2020-02-11 12:40:21 | pycep linter plugin running now...
-    Process Time: 2020-02-11 12:40:21 | ELSA 0.0.0: Example pycep package content module name: Rendering 10 slides into raw data.
-    Process Time: 2020-02-11 12:40:21 | ELSA 0.0.0: Example pycep package content module name: Processing slides with linter now!
-    Process Time: 2020-02-11 12:40:21 | ELSA 0.0.0: Example pycep package content module name: CEP 2000 - Passed
-    Process Time: 2020-02-11 12:40:21 | ELSA 0.0.0: Example pycep package content module name: CEP 2006 Test Failed! | More info: https://simspace.github.io/cep/ceps/2006/#requirements
-    Process Time: 2020-02-11 12:40:21 | ELSA 0.0.0: Example pycep package content module name: CEP 2007 - Passed
-    
 ## Current Features
 
 -   File type support for json/tar.gz 
@@ -58,13 +45,23 @@ When using the debug flag -d or --debug pycep will show debug level logging info
 -   Package Export level processing 
 -   Version 8+ Package module exports
 -   Docker support
+-   From package export format to Markdown
+-   Spellcheck
 
 ### Coming Soon!
 
--   Markdown formatting to/from
--   Spellcheck
+-   From Markdown format to package export
 -   Plagiarism Check
 -   Reading level score
 -   ML based NIST(an other framework) tagging
 -   More CEP checks
 -   Unit tests code coverage
+
+## Contributing  
+
+See the official guidelines [here](docs/CONTRIBUTING.md)!
+
+## Code of Conduct 
+In the interest of fostering an open and welcoming environment, we as contributors and maintainers pledge to making participation in our project and our community a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
+
+Please read the full [Code of Conduct](docs/CODE-OF-CONDUCT.md)!

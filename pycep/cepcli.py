@@ -1,4 +1,4 @@
-"""pycep python cli python package."""
+"""The pycep python cli python package."""
 # coding=utf-8
 import click
 import json
@@ -6,8 +6,8 @@ import json
 from logging import DEBUG, ERROR, basicConfig, info
 
 from pycep import __version__
-from pycep.parser import extract_tar_file
-from pycep.plugin import linter
+from pycep.parser import open_input_file
+from pycep.plugin import linter, markdown_out, spellcheck
 
 
 def value_check(value, ctx):
@@ -39,28 +39,30 @@ def print_version(ctx, param, value):
     ctx.exit()
 
 
-def open_input_file(input_file, file_type):
-    """Return raw data from input file string."""
-    if file_type is "tar":
-        input_data = extract_tar_file(input_file)
-    if file_type == "json":
-        with open(input_file, 'rb') as raw_json:
-            input_data = raw_json.read()
-    return input_data
-
-
 @click.command()
-@click.option("--input_file", "-f", help="The Package export tar.gz file.", required=True)
-@click.option("--file_type", "-t", help="Input File type format json/tar.gz .", default="tar")
-@click.option("--plugin", "-p", help="pycep function to run.", required=True)
-@click.option('--debug/', "-d",  help="pycep function to run.",
+@click.option("--input_file", "-f", help="The Package export tar.gz or the json file .", required=True)
+@click.option("--file_type", "-t", help="Input File type format json/tar.gz.", default="tar")
+@click.option("--output", "-o", help="Output file directory.")
+@click.option("--word_list", "-w", help="Input spelling word list.", default="pycep/data/word_list.txt")
+@click.option("--plugin", "-p", help="Plugin for pycep to run.", required=True)
+@click.option('--debug/', "-d",  help="Turn debug mode on.",
               is_flag=True, callback=cli, expose_value=False, is_eager=True, default=False)
-@click.option('--version', is_flag=True, callback=print_version, expose_value=False, is_eager=True)
-def pycep_cli(input_file, plugin, file_type):
+@click.option('--version', help="Print Application Version",
+              is_flag=True, callback=print_version, expose_value=False, is_eager=True)
+def pycep_cli(input_file, plugin, file_type, output, word_list):
     """Pycep Command line interface."""
+    input_data = json.loads(open_input_file(input_file, file_type))
     if "linter" == plugin:
         info("pycep linter plugin running now...")
-        linter(json.loads(open_input_file(input_file, file_type)))
+        linter(input_data)
+
+    elif "render" == plugin:
+        info("pycep render plugin running now...")
+        markdown_out(input_data, output)
+
+    elif "spellcheck" == plugin:
+        info("pycep render plugin running now...")
+        spellcheck(input_data, word_list)
 
 
 if __name__ == '__main__':

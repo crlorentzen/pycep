@@ -8,7 +8,6 @@ package_dir = (os.path.join('..'))
 setup(
     name="pycep",
     version=__version__,
-    include_package_data=True,
     packages=find_packages(exclude=['docs', 'tests', 'tools', 'utils']),
     url="https://github.com/simspace/pycep/",
     license='Apache 2.0',
@@ -19,6 +18,8 @@ setup(
                  'Intended Audience :: Developers',
                  'License :: OSI Approved :: Apache 2.0',
                  'Programming Language :: Python :: 3.7'],
-    package_dir={'.': ['pycep/']},
+    package_dir={'.': ['pycep/', 'data/']},
     scripts=['pycep/cepcli.py'],
+    include_package_data=True,
+    zip_safe=False
 )
