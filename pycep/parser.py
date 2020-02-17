@@ -63,12 +63,13 @@ def get_slide_data_listed(package_export_content_modules: dict, values: str):
     content_data_node = package_export_content_modules[values]['contentModuleExportQuestionDescriptions']
     info(package_name + ": Rendering " + str(len(content_data_node)) + " slides into raw data.")
     for slide_item in content_data_node:
-        if 'data' in content_data_node[slide_item]:
-            check_dic = content_data_node[slide_item]['data']['document']['nodes']
-            render_slide_data = render_slide(check_dic)
-            if render_slide_data:
-                raw_data_dict[package_name][package_export_content_modules[values]['contentModuleExportQuestions'][
-                    slide_item]['title']] = render_slide_data
+        if content_data_node[slide_item]:
+            if 'data' in content_data_node[slide_item]:
+                check_dic = content_data_node[slide_item]['data']['document']['nodes']
+                render_slide_data = render_slide(check_dic)
+                if render_slide_data:
+                    raw_data_dict[package_name][package_export_content_modules[values]['contentModuleExportQuestions'][
+                        slide_item]['title']] = render_slide_data
     return raw_data_dict
 
 

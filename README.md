@@ -10,6 +10,7 @@ The main goal of this project is to bring basic content checking features in a p
 
     git clone https://github.com/SimSpace/pycep/
     cd pycep 
+    pip install -r requirements.txt
     python setup.py install
 
 ## Basic pycep CLI usage
@@ -45,7 +46,7 @@ For more information on plugins please see [Plugin Guide](docs/PLUGINS.md)
 -   Package Export level processing 
 -   Version 8+ Package module exports
 -   Docker support
--   From package export format to Markdown
+-   Render from package export format to Markdown
 -   Spellcheck
 
 ### Coming Soon!
@@ -56,6 +57,7 @@ For more information on plugins please see [Plugin Guide](docs/PLUGINS.md)
 -   ML based NIST(an other framework) tagging
 -   More CEP checks
 -   Unit tests code coverage
+-   Multiprocessing support???
 
 ## Contributing  
 

@@ -1,7 +1,7 @@
 """The pycep python cli python package."""
 # coding=utf-8
 import click
-import json
+import ujson
 
 from logging import DEBUG, ERROR, basicConfig, info
 
@@ -51,7 +51,7 @@ def print_version(ctx, param, value):
               is_flag=True, callback=print_version, expose_value=False, is_eager=True)
 def pycep_cli(input_file, plugin, file_type, output, word_list):
     """Pycep Command line interface."""
-    input_data = json.loads(open_input_file(input_file, file_type))
+    input_data = ujson.loads(open_input_file(input_file, file_type))
     if "linter" == plugin:
         info("pycep linter plugin running now...")
         linter(input_data)

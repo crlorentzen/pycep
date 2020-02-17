@@ -19,3 +19,12 @@
 -   Move code of conduct to docs folder
 -   Update arg help functions
 -   Add Contributing.md to docs
+
+## pycep Release 0.0.4
+-   Updated word_list.txt with 242 new words
+-   Use ujson now instead of built-in json
+-   Fix spell checking bug against image data(image data shouldn't be scanned).
+-   Update docs with spellcheck/render plugin example
+-   Created modular spellchecking functions
+-   Add line data field to spellcheck output
+-   Change spellcheck output to logging output instead of using print()
