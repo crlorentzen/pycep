@@ -33,6 +33,7 @@ The main goal of this project is to bring basic content checking features in a p
       --help                 Show this message and exit.
 
 
+
 For more information on plugins please see [Plugin Guide](docs/PLUGINS.md)
 
 ## Current Features
@@ -47,16 +48,21 @@ For more information on plugins please see [Plugin Guide](docs/PLUGINS.md)
 -   Version 8+ Package module exports
 -   Docker support
 -   Render from package export format to Markdown
--   Spellcheck
+-   Spellcheck Plugin
+-   Info plugin
+-   F strings used as much as possible
+
 
 ### Coming Soon!
 
 -   From Markdown format to package export
+-   Custom CEP json support
 -   Plagiarism Check
 -   Reading level score
 -   ML based NIST(an other framework) tagging
 -   More CEP checks
 -   Unit tests code coverage
+-   Add linking of modules into master readme for package and modules
 -   Multiprocessing support???
 
 ## Contributing  

@@ -51,3 +51,10 @@ The spellcheck plugin searches for errors using a default spelling word list inc
 Currently the render plugin only supports exporting a package export json tar.gz file into a markdown output by default. It could be easy to implement a html output format as well and convert markdown back to export package portal format.
 
     cepcli.py -f Demo_Package_export.tar.gz -p render -o /path/to/export/dir/
+
+
+## Info plugin
+
+Currently the info plugin prints basic information about modules.
+
+    cepcli.py -f Demo_Package_export.tar.gz -p packageinfo

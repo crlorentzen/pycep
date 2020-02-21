@@ -6,8 +6,8 @@ import ujson
 from logging import DEBUG, ERROR, basicConfig, info
 
 from pycep import __version__
-from pycep.parser import open_input_file
-from pycep.plugin import linter, markdown_out, spellcheck
+from pycep.parse import open_input_file
+from pycep.plugin import linter, markdown_out, spellcheck, package_info
 
 
 def value_check(value, ctx):
@@ -63,6 +63,10 @@ def pycep_cli(input_file, plugin, file_type, output, word_list):
     elif "spellcheck" == plugin:
         info("pycep render plugin running now...")
         spellcheck(input_data, word_list)
+
+    elif "packageinfo" == plugin:
+        info("pycep package_info plugin running now...")
+        package_info(input_data)
 
 
 if __name__ == '__main__':

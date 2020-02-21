@@ -28,3 +28,10 @@
 -   Created modular spellchecking functions
 -   Add line data field to spellcheck output
 -   Change spellcheck output to logging output instead of using print()
+
+
+## pycep Release 0.0.5
+-   New info plugin to display content module information
+-   Markdown out now supports table output for module information
+-   New formatting python library for handling data structures
+-   Added ujson for faster json processing

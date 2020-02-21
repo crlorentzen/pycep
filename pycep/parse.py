@@ -1,4 +1,4 @@
-"""The pycep python parsing function library."""
+"""The pycep parsing function library."""
 # coding=utf-8
 import re
 import random
@@ -8,6 +8,8 @@ from logging import error, info
 
 from pycep.ceps import CEPS
 from pycep.render import extract_tar_file
+from pycep.formatter import add_newline, strip_end_space
+from pycep.model import content_module_string, PackageExport, ModuleExportContentModule, get_value
 
 
 def open_input_file(input_file, file_type):
@@ -18,14 +20,6 @@ def open_input_file(input_file, file_type):
         with open(input_file, 'rb') as raw_json:
             input_data = raw_json.read()
     return input_data
-
-
-def get_value(item: str, json_package: dict) -> dict:
-    """Return dict item."""
-    return_dict = {}
-    if item in json_package:
-        return_dict[item] = json_package[item]
-    return return_dict
 
 
 def cep_check_message(cep_number: str):
@@ -49,10 +43,6 @@ def get_slide_data(package_export_content_modules: dict, values: str):
                 raw_data += add_newline("# " + package_data['contentModuleExportQuestions'][slide_item]['title']) + \
                             render_slide_data
     return raw_data, package_name
-
-
-def h_one_format(heading_data):
-    return f"# {add_newline(heading_data)}"
 
 
 def get_slide_data_listed(package_export_content_modules: dict, values: str):
@@ -129,17 +119,6 @@ def render_nested_list_nodes(slide_line: dict, format_string: str):
     return raw_list_data
 
 
-def strip_end_space(string_value: str):
-    """Remove escape character from end of input string value and return."""
-    while string_value[-1:] == " ":
-        string_value = string_value[:-1]
-    return string_value
-
-
-def add_newline(input_item: str) -> str:
-    return f"{input_item}\n"
-
-
 def render_slide(slide_dict: dict):
     """Return string data from content module slide data."""
     raw_slide_data = ""
@@ -190,3 +169,26 @@ def render_slide(slide_dict: dict):
                     error("Data type " + slide_line['type'] + "unknown")
                     raw_slide_data += " Data Type Unknown\n"
     return raw_slide_data
+
+
+def package_export_module_info(raw_data):
+    package_data = {}
+    package_export_content_modules = get_value(content_module_string, raw_data)[content_module_string]
+    for values in package_export_content_modules:
+        module_data = ModuleExportContentModule(package_export_content_modules[values][
+                                                  'contentModuleExportContentModule'])
+        for data_value, value in module_data.to_dict().items():
+            if value and data_value != 'questions':
+                package_data[data_value] = value
+    return package_data
+
+
+def package_export_package_info(raw_data):
+    package_dict = PackageExport(raw_data['packageExportPackage'])
+    package_data = {}
+    for data_value, value in package_dict.to_dict().items():
+        if value:
+            package_data[data_value] = value
+    return package_data
+
+

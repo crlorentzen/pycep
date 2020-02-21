@@ -7,10 +7,11 @@ from logging import info, error
 
 from spellchecker import SpellChecker
 
-from pycep.parser import get_value, get_slide_data, cep_check, get_slide_data_listed, h_one_format
 from pycep.render import write_to_file
-
-content_module_string = 'packageExportContentModules'
+from pycep.parse import get_slide_data, package_export_module_info, package_export_package_info, \
+    get_slide_data_listed, cep_check
+from pycep.model import content_module_string, ModuleExportContentModule, get_value
+from pycep.formatter import format_table, strip_unsafe_file_names, h_one_format
 
 
 def linter(raw_data: dict):
@@ -25,18 +26,32 @@ def linter(raw_data: dict):
 def markdown_out(raw_data: dict, output: str):
     """Output package to md format."""
     package_export_content_modules = get_value(content_module_string, raw_data)[content_module_string]
+    main_package_data = package_export_package_info(raw_data)
+    file_name = f"{main_package_data['name'].strip(' ')}.md"
+    if "contentModules" in main_package_data:
+        main_package_data["contentModules"] = ""
+    write_to_file(f"{output}/{file_name}", format_table(main_package_data))
     for values in package_export_content_modules:
         raw_slide_data = get_slide_data_listed(package_export_content_modules, values)
         info("Processing slides with render plugin now!")
         for package in raw_slide_data:
+            write_to_file((output + "/" + package.strip(" ") + ".md"),
+                          format_table(ModuleExportContentModule(package_export_content_modules[values][
+                                                                     'contentModuleExportContentModule']).to_dict()))
             for slide_item in raw_slide_data[package]:
                 try:
-                    write_to_file((output + "/" + package.strip(" ") + "/" + slide_item + ".md"),
+                    slide_name_string = strip_unsafe_file_names(slide_item)
+                    write_to_file((output + "/" + package.strip(" ") + "/" + slide_name_string + ".md"),
                                   (h_one_format(slide_item) + raw_slide_data[package][slide_item]))
                 except FileNotFoundError:
-                    mkdir(output + "/" + package.strip(" ") + "/")
-                    write_to_file((output + "/" + package.strip(" ") + "/" + slide_item + ".md"),
-                                  (h_one_format(slide_item) + raw_slide_data[package][slide_item]))
+                    try:
+                        mkdir(output + "/" + package.strip(" ") + "/")
+                        slide_name_string = strip_unsafe_file_names(slide_item)
+                        write_to_file((output + "/" + package.strip(" ") + "/" + slide_name_string + ".md"),
+                                      (h_one_format(slide_item) +
+                                       raw_slide_data[package][slide_item]))
+                    except FileExistsError:
+                        error(f"{package} {slide_item} duplicate slide names found.")
 
 
 def spell_check_slide(spell, line_count, slide_line_item, package, titles):
@@ -85,3 +100,8 @@ def spellcheck(input_data: dict, word_list) -> None:
                     x = re.findall(test_search, slide_line_item)
                     if len(x) < 1:
                         spell_check_slide(spell, line_count, slide_line_item, package, titles)
+
+
+def package_info(raw_data: dict):
+    """Process content module for cep standards."""
+    print(package_export_module_info(raw_data))
