@@ -1,4 +1,4 @@
-"""The pycep python cli python package."""
+"""The pycep cli python package."""
 # coding=utf-8
 import click
 import ujson
@@ -7,7 +7,7 @@ from logging import DEBUG, ERROR, basicConfig, info
 
 from pycep import __version__
 from pycep.parse import open_input_file
-from pycep.plugin import linter, markdown_out, spellcheck, package_info
+from pycep.plugin import linter, markdown_out, spellcheck, package_info, sentiment_analyzer, return_non_data_slide
 
 
 def value_check(value, ctx):
@@ -67,6 +67,13 @@ def pycep_cli(input_file, plugin, file_type, output, word_list):
     elif "packageinfo" == plugin:
         info("pycep package_info plugin running now...")
         package_info(input_data)
+
+    elif "nltk" == plugin:
+        info("pycep nltk plugin running now...")
+        sentiment_analyzer(input_data)
+    elif "tester" == plugin:
+        tester = return_non_data_slide(input_data)
+        print()
 
 
 if __name__ == '__main__':

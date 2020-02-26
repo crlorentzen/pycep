@@ -1,3 +1,6 @@
 click
 pyspellchecker
 ujson
+nltk
+opencv-python
+pytesseract

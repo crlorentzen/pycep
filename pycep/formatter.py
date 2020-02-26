@@ -13,13 +13,26 @@ def add_newline(input_item: str) -> str:
     return f"{input_item}\n"
 
 
+def add_whitespace(input_string):
+    url_safe_string = ""
+    for char in input_string:
+        if char != " ":
+            url_safe_string += char
+        else:
+            url_safe_string += "%20"
+    return url_safe_string
+
+
 def strip_unsafe_file_names(string_data: str) -> str:
     new_string = ""
     for character in string_data:
-        if character != "/":
+        if character != "/" and character != ":":
             new_string += character
+        elif character == ":":
+            new_string += ";"
         else:
             new_string += "-"
+
     return new_string
 
 

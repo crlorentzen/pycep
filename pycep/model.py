@@ -1,5 +1,13 @@
 """The pycep model library."""
 # coding=utf-8
+import platform
+
+from logging import info
+
+dir_character = "/"
+if platform.system() == "Windows":
+    info("Windows Detected")
+    dir_character = "\\"
 
 content_module_string = 'packageExportContentModules'
 
@@ -53,7 +61,11 @@ class ModuleExportContentModule:
         self.status = get_value('status', raw_data)['status']
         self.randomizable = get_value('randomizable', raw_data)['randomizable']
         self.survey = get_value('survey', raw_data)['survey']
-        self.clone_source = get_value('cloneSource', raw_data)['cloneSource']
+        clone_source = get_value('cloneSource', raw_data)
+        if 'cloneSource' in clone_source:
+            self.clone_source = clone_source['cloneSource']
+        else:
+            self.clone_source = None
         self.owner = get_value('owner', raw_data)['owner']
         self.name_value = get_value('name', raw_data)['name']
         self.questions = get_value('questions', raw_data)['questions']
@@ -61,7 +73,7 @@ class ModuleExportContentModule:
         self.description = get_value('description', raw_data)['description']
 
     def to_dict(self):
-        """Return dictionary object type for Group database Table API calls."""
+        """Return dictionary object type for to/from dict formatting."""
         data = {
             'status': self.status,
             'randomizable': self.randomizable,
