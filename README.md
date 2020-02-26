@@ -64,6 +64,7 @@ For more information on plugins please see [Plugin Guide](docs/PLUGINS.md)
 -   Unit tests code coverage
 -   Add linking of modules into master readme for package and modules
 -   Multiprocessing support???
+-   Image readability processor
 
 ## Contributing  
 

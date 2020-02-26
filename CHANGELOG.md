@@ -35,3 +35,7 @@
 -   Markdown out now supports table output for module information
 -   New formatting python library for handling data structures
 -   Added ujson for faster json processing
+
+## pycep Release 0.0.6
+-   New sentiment analysis plugin
+-   Fix bug in markdown output
