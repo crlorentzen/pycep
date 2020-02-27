@@ -11,7 +11,7 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from pycep.render import write_to_file
 from pycep.parse import get_slide_data, package_export_module_info, package_export_package_info, \
     get_slide_data_listed, cep_check
-from pycep.model import content_module_string, ModuleExportContentModule, get_value
+from pycep.model import content_module_string, ModuleExportContentModule, get_value, dir_character
 from pycep.formatter import format_table, strip_unsafe_file_names, h_one_format
 
 
@@ -32,34 +32,36 @@ def markdown_out(raw_data: dict, output: str):
     #if "contentModules" in main_package_data:
      #   main_package_data["contentModules"] = ""
 
-    write_to_file(f"{output}/{file_name}", format_table(main_package_data))
+    write_to_file(f"{output}{dir_character}{file_name}", format_table(main_package_data))
     for values in package_export_content_modules:
         raw_slide_data = get_slide_data_listed(package_export_content_modules, values)
         info("Processing slides with render plugin now!")
         for package in raw_slide_data:
             package_name_value = strip_unsafe_file_names(package)
-            write_to_file((output + "/" + package_name_value + ".md"),
+            write_to_file(f"{output}{dir_character}{package_name_value}.md",
                           format_table(ModuleExportContentModule(package_export_content_modules[values][
                                                                      'contentModuleExportContentModule']).to_dict()))
             for slide_item in raw_slide_data[package]:
                 try:
                     slide_name_string = strip_unsafe_file_names(slide_item)
-                    write_to_file((output + "/" + package_name_value + "/" + slide_name_string + ".md"),
+                    write_to_file(f"{output}{dir_character}{package_name_value}{dir_character}{slide_name_string}.md",
                                   (h_one_format(slide_item) + raw_slide_data[package][slide_item]))
                 except FileNotFoundError:
                     try:
-                        mkdir(output + "/" + package_name_value + "/")
+                        mkdir(f"{output}{dir_character}{package_name_value}{dir_character}")
                         slide_name_string_value = strip_unsafe_file_names(slide_item)
-                        write_to_file((output + "/" + package_name_value + "/" + slide_name_string_value + ".md"),
-                                      (h_one_format(slide_item) +
-                                       raw_slide_data[package][slide_item]))
+                        write_to_file(
+                            f"{output}{dir_character}{package_name_value}{dir_character}{slide_name_string_value}.md",
+                            (h_one_format(slide_item) +
+                            raw_slide_data[package][slide_item]))
                     except FileExistsError:
                         try:
                             slide_name_string_value = strip_unsafe_file_names(slide_item)
-                            write_to_file((output + "/" + package_name_value + "/" + slide_name_string_value + "1" +
-                            ".md"),
-                                          (h_one_format(slide_item) +
-                                           raw_slide_data[package][slide_item]))
+                            write_to_file(
+                                f"{output}{dir_character}{package_name_value}{dir_character}{slide_name_string_value}"
+                                f".md",
+                                (h_one_format(slide_item) +
+                                 raw_slide_data[package][slide_item]))
                         except FileExistsError:
                             error(f"{package} {slide_item} duplicate slide names found.")
 

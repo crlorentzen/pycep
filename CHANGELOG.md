@@ -39,3 +39,4 @@
 ## pycep Release 0.0.6
 -   New sentiment analysis plugin
 -   Fix bug in markdown output
+-   Remove cep directory for now and fix bug to allow window installs to work properly

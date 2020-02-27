@@ -1,5 +1,13 @@
 """The pycep model library."""
 # coding=utf-8
+import platform
+
+from logging import info
+
+dir_character = "/"
+if platform.system() == "Windows":
+    info("Windows Detected")
+    dir_character = "\\"
 
 content_module_string = 'packageExportContentModules'
 

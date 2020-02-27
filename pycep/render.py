@@ -8,8 +8,13 @@ from logging import error
 
 def write_to_file(input_file_name: str, string_data: str) -> None:
     """Write string data with input file path."""
-    with open(input_file_name, 'w') as output_file:
-        output_file.write(string_data)
+    try:
+        with open(input_file_name, 'w') as output_file:
+            output_file.write(string_data)
+
+    except UnicodeEncodeError:
+        with open(input_file_name, 'wb') as output_file:
+            output_file.write(string_data.encode('utf-8'))
 
 
 def extract_tar_file(file_name: str) -> str:
