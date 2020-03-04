@@ -52,8 +52,7 @@ def markdown_out(raw_data: dict, output: str):
                         slide_name_string_value = strip_unsafe_file_names(slide_item)
                         write_to_file(
                             f"{output}{dir_character}{package_name_value}{dir_character}{slide_name_string_value}.md",
-                            (h_one_format(slide_item) +
-                            raw_slide_data[package][slide_item]))
+                            (h_one_format(slide_item) + raw_slide_data[package][slide_item]))
                     except FileExistsError:
                         try:
                             slide_name_string_value = strip_unsafe_file_names(slide_item)

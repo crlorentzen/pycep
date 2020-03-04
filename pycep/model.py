@@ -10,6 +10,10 @@ if platform.system() == "Windows":
     dir_character = "\\"
 
 content_module_string = 'packageExportContentModules'
+export_module_string = 'contentModuleExportContentModule'
+package_string = 'packageExportPackage'
+question_description = 'contentModuleExportQuestionDescriptions'
+export_question_string = 'contentModuleExportQuestions'
 
 
 def get_value(item: str, json_package: dict) -> dict:

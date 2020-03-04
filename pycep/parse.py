@@ -9,7 +9,8 @@ from logging import error, info
 from pycep.ceps import CEPS
 from pycep.render import extract_tar_file
 from pycep.formatter import add_newline, strip_end_space
-from pycep.model import content_module_string, PackageExport, ModuleExportContentModule, get_value
+from pycep.model import content_module_string, PackageExport, ModuleExportContentModule, get_value, \
+    export_module_string, package_string, question_description, export_question_string
 
 
 def open_input_file(input_file, file_type):
@@ -30,27 +31,27 @@ def cep_check_message(cep_number: str):
 def get_slide_data(package_export_content_modules: dict, values: str):
     """Return raw data from package and package name."""
     package_data = package_export_content_modules[values]
-    package_value = package_data['contentModuleExportContentModule']
+    package_value = package_data[export_module_string]
     package_name = package_value['name']
     raw_data = ""
-    content_data_node = package_data['contentModuleExportQuestionDescriptions']
+    content_data_node = package_data[question_description]
     info(package_name + ": Rendering " + str(len(content_data_node)) + " slides into raw data.")
     for slide_item in content_data_node:
         if 'data' in content_data_node[slide_item]:
             check_dic = content_data_node[slide_item]['data']['document']['nodes']
             render_slide_data = render_slide(check_dic)
             if render_slide_data:
-                raw_data += add_newline("# " + package_data['contentModuleExportQuestions'][slide_item]['title']) + \
+                raw_data += add_newline("# " + package_data[export_question_string][slide_item]['title']) + \
                             render_slide_data
     return raw_data, package_name
 
 
 def get_slide_data_listed(package_export_content_modules: dict, values: str):
     """Return raw data from package and package name."""
-    package_value = package_export_content_modules[values]['contentModuleExportContentModule']
+    package_value = package_export_content_modules[values][export_module_string]
     package_name = package_value['name']
     raw_data_dict = {package_name: {}}
-    content_data_node = package_export_content_modules[values]['contentModuleExportQuestionDescriptions']
+    content_data_node = package_export_content_modules[values][question_description]
     info(package_name + ": Rendering " + str(len(content_data_node)) + " slides into raw data.")
     for slide_item in content_data_node:
         if content_data_node[slide_item]:
@@ -58,7 +59,7 @@ def get_slide_data_listed(package_export_content_modules: dict, values: str):
                 check_dic = content_data_node[slide_item]['data']['document']['nodes']
                 render_slide_data = render_slide(check_dic)
                 if render_slide_data:
-                    raw_data_dict[package_name][package_export_content_modules[values]['contentModuleExportQuestions'][
+                    raw_data_dict[package_name][package_export_content_modules[values][export_question_string][
                         slide_item]['title']] = render_slide_data
     return raw_data_dict
 
@@ -175,8 +176,7 @@ def package_export_module_info(raw_data):
     package_data = {}
     package_export_content_modules = get_value(content_module_string, raw_data)[content_module_string]
     for values in package_export_content_modules:
-        module_data = ModuleExportContentModule(package_export_content_modules[values][
-                                                  'contentModuleExportContentModule'])
+        module_data = ModuleExportContentModule(package_export_content_modules[values][export_module_string])
         for data_value, value in module_data.to_dict().items():
             if value and data_value != 'questions':
                 package_data[data_value] = value
@@ -184,7 +184,7 @@ def package_export_module_info(raw_data):
 
 
 def package_export_package_info(raw_data):
-    package_dict = PackageExport(raw_data['packageExportPackage'])
+    package_dict = PackageExport(raw_data[package_string])
     package_data = {}
     for data_value, value in package_dict.to_dict().items():
         if value:

@@ -40,3 +40,6 @@
 -   New sentiment analysis plugin
 -   Fix bug in markdown output
 -   Remove cep directory for now and fix bug to allow window installs to work properly
+
+## pycep Release 0.0.7
+-   Change windows path output format to html ascii code values.

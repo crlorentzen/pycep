@@ -26,12 +26,16 @@ def add_whitespace(input_string):
 def strip_unsafe_file_names(string_data: str) -> str:
     new_string = ""
     for character in string_data:
-        if character != "/" and character != ":":
-            new_string += character
+        if character == "\\":
+            new_string += "%92"
         elif character == ":":
-            new_string += ";"
+            new_string += "%58"
+        elif character == "?":
+            new_string += "%63"
+        elif character == "/":
+            new_string += "%47"
         else:
-            new_string += "-"
+            new_string += character
 
     return new_string
 
