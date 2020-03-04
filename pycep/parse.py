@@ -59,8 +59,7 @@ def get_slide_data_listed(package_export_content_modules: dict, values: str):
                 check_dic = content_data_node[slide_item]['data']['document']['nodes']
                 render_slide_data = render_slide(check_dic)
                 if render_slide_data:
-                    raw_data_dict[package_name][package_export_content_modules[values][export_question_string][
-                        slide_item]['title']] = render_slide_data
+                    raw_data_dict[package_name][package_export_content_modules[values][export_question_string][slide_item]['title']] = render_slide_data
     return raw_data_dict
 
 
