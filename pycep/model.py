@@ -72,12 +72,18 @@ class ModuleExportContentModule:
             self.clone_source = None
         self.owner = get_value('owner', raw_data)['owner']
         self.name_value = get_value('name', raw_data)['name']
-        self.questions = get_value('questions', raw_data)['questions']
+        question_data = get_value('questions', raw_data)
+        if 'questions' in question_data:
+            self.questions = question_data['questions']
+        tasks_data = get_value('tasks', raw_data)
+        if tasks_data:
+            self.questions = tasks_data['tasks']
         self.duration = get_value('duration', raw_data)['duration']
         self.description = get_value('description', raw_data)['description']
 
     def to_dict(self):
-        """Return dictionary object type for to/from dict formatting."""
+        """Return dictionary object type for to/from
+         dict formatting."""
         data = {
             'status': self.status,
             'randomizable': self.randomizable,

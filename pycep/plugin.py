@@ -30,7 +30,7 @@ def markdown_out(raw_data: dict, output: str):
     main_package_data = package_export_package_info(raw_data)
     file_name = f"{strip_unsafe_file_names(main_package_data['name'].strip(' '))}.md"
     #if "contentModules" in main_package_data:
-     #   main_package_data["contentModules"] = ""
+    #   main_package_data["contentModules"] = ""
 
     write_to_file(f"{output}{dir_character}{file_name}", format_table(main_package_data))
     for values in package_export_content_modules:

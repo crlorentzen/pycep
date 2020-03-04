@@ -48,18 +48,23 @@ def get_slide_data(package_export_content_modules: dict, values: str):
 
 def get_slide_data_listed(package_export_content_modules: dict, values: str):
     """Return raw data from package and package name."""
-    package_value = package_export_content_modules[values][export_module_string]
+    package_value = package_export_content_modules[values]['contentModuleExportContentModule']
     package_name = package_value['name']
     raw_data_dict = {package_name: {}}
-    content_data_node = package_export_content_modules[values][question_description]
-    info(package_name + ": Rendering " + str(len(content_data_node)) + " slides into raw data.")
+    content_data_node = package_export_content_modules[values]['contentModuleExportQuestionDescriptions']
     for slide_item in content_data_node:
+        if 'contentModuleExportTasks' in package_export_content_modules[values]:
+            slide_title = package_export_content_modules[values]['contentModuleExportTasks'][slide_item]['title']
+        elif 'contentModuleExportQuestionDescriptions' in package_export_content_modules[values]:
+            slide_title = package_export_content_modules[values]['contentModuleExportQuestionDescriptions'][
+                slide_item]['title']
+        info(package_name + ": Rendering " + str(len(content_data_node)) + " slides into raw data.")
         if content_data_node[slide_item]:
             if 'data' in content_data_node[slide_item]:
                 check_dic = content_data_node[slide_item]['data']['document']['nodes']
                 render_slide_data = render_slide(check_dic)
                 if render_slide_data:
-                    raw_data_dict[package_name][package_export_content_modules[values][export_question_string][slide_item]['title']] = render_slide_data
+                    raw_data_dict[package_name][slide_title] = render_slide_data
     return raw_data_dict
 
 
@@ -177,7 +182,7 @@ def package_export_module_info(raw_data):
     for values in package_export_content_modules:
         module_data = ModuleExportContentModule(package_export_content_modules[values][export_module_string])
         for data_value, value in module_data.to_dict().items():
-            if value and data_value != 'questions':
+            if value and data_value != ('questions' or 'tasks'):
                 package_data[data_value] = value
     return package_data
 
@@ -189,5 +194,3 @@ def package_export_package_info(raw_data):
         if value:
             package_data[data_value] = value
     return package_data
-
-
