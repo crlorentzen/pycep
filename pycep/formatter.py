@@ -25,15 +25,15 @@ def add_whitespace(input_string):
 
 def strip_unsafe_file_names(string_data: str) -> str:
     new_string = ""
+    string_data.replace("\x5C", "%92")
+
     for character in string_data:
-        if character == "\\":
-            new_string += "%92"
-        elif character == ":":
+        if character == ":":
             new_string += "%58"
-        elif character == "?":
-            new_string += "%63"
         elif character == "/":
             new_string += "%47"
+        elif character == "?":
+            new_string += "%63"
         else:
             new_string += character
 
