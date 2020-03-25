@@ -7,7 +7,8 @@ from logging import DEBUG, ERROR, basicConfig, info
 
 from pycep import __version__
 from pycep.parse import open_input_file
-from pycep.plugin import linter, markdown_out, spellcheck, package_info, sentiment_analyzer, return_non_data_slide
+from pycep.plugin import linter, markdown_out, spellcheck, package_info, sentiment_analyzer, return_non_data_slide, \
+    markdown_in
 
 
 def value_check(value, ctx):
@@ -40,18 +41,25 @@ def print_version(ctx, param, value):
 
 
 @click.command()
-@click.option("--input_file", "-f", help="The Package export tar.gz or the json file .", required=True)
+@click.option("--input_file", "-f", help="The Package export tar.gz or the json file .")
 @click.option("--file_type", "-t", help="Input File type format json/tar.gz.", default="tar")
 @click.option("--output", "-o", help="Output file directory.")
 @click.option("--word_list", "-w", help="Input spelling word list.", default="pycep/data/word_list.txt")
 @click.option("--plugin", "-p", help="Plugin for pycep to run.", required=True)
+@click.option("--input_directory", "-g", help="The Package export directory that generates a package export tar.gz or "
+                                              "the json file ")
 @click.option('--debug/', "-d",  help="Turn debug mode on.",
               is_flag=True, callback=cli, expose_value=False, is_eager=True, default=False)
 @click.option('--version', help="Print Application Version",
               is_flag=True, callback=print_version, expose_value=False, is_eager=True)
-def pycep_cli(input_file, plugin, file_type, output, word_list):
+@click.option("--export-dir", "-e", help="Export file directory.", envvar='EXPORT_DIR')
+@click.option("--owner-id", "-uid", help="User account UID.", envvar='OWNER_ID')
+def pycep_cli(input_file, plugin, file_type, output, word_list, input_directory, export_dir, owner_id):
     """Pycep Command line interface."""
-    input_data = ujson.loads(open_input_file(input_file, file_type))
+    if input_file:
+        input_data = ujson.loads(open_input_file(input_file, file_type))
+    else:
+        input_data = None
     if "linter" == plugin:
         info("pycep linter plugin running now...")
         linter(input_data)
@@ -74,6 +82,8 @@ def pycep_cli(input_file, plugin, file_type, output, word_list):
     elif "tester" == plugin:
         tester = return_non_data_slide(input_data)
         print()
+    elif "generate" == plugin:
+        markdown_in(output, input_directory, export_dir, owner_id)
 
 
 if __name__ == '__main__':

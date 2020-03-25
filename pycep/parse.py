@@ -4,23 +4,24 @@ import re
 import random
 import string
 
-from logging import error, info
-
 from pycep.ceps import CEPS
 from pycep.render import extract_tar_file
-from pycep.formatter import add_newline, strip_end_space
-from pycep.model import content_module_string, PackageExport, ModuleExportContentModule, get_value, \
-    export_module_string, package_string, question_description, export_question_string
+from pycep.formatter import strip_end_space
+from pycep.model import get_value, ModuleExportContentModule, PackageExport
+from pycep.content_strings import *
 
 
 def open_input_file(input_file, file_type):
     """Return raw data from input file string."""
-    if file_type is "tar":
-        input_data = extract_tar_file(input_file)
-    if file_type == "json":
-        with open(input_file, 'rb') as raw_json:
-            input_data = raw_json.read()
-    return input_data
+    if input_file:
+        if file_type is "tar":
+            input_data = extract_tar_file(input_file)
+        if file_type == "json":
+            with open(input_file, 'rb') as raw_json:
+                input_data = raw_json.read()
+        return input_data
+    else:
+        return None
 
 
 def cep_check_message(cep_number: str):
@@ -31,37 +32,46 @@ def cep_check_message(cep_number: str):
 def get_slide_data(package_export_content_modules: dict, values: str):
     """Return raw data from package and package name."""
     package_data = package_export_content_modules[values]
-    package_value = package_data[export_module_string]
-    package_name = package_value['name']
+    package_value = package_data[EXPORT_MOD_STRING]
+    package_name = package_value[N_STR]
     raw_data = ""
-    content_data_node = package_data[question_description]
+    content_data_node = package_data[QUESTION_DESC]
     info(package_name + ": Rendering " + str(len(content_data_node)) + " slides into raw data.")
     for slide_item in content_data_node:
-        if 'data' in content_data_node[slide_item]:
-            check_dic = content_data_node[slide_item]['data']['document']['nodes']
+        slide_title = render_slide_name(package_export_content_modules, values, slide_item)
+        if D_STR in content_data_node[slide_item]:
+            check_dic = content_data_node[slide_item][D_STR][DOC_STR][NODES]
             render_slide_data = render_slide(check_dic)
             if render_slide_data:
-                raw_data += add_newline("# " + package_data[export_question_string][slide_item]['title']) + \
-                            render_slide_data
+                raw_data += f"# {slide_title}{render_slide_data}{NEW_LINE}"
     return raw_data, package_name
+
+
+def render_slide_name(package_export_content_modules, values, slide_item):
+    slide_title = None
+    if EXPORT_TASKS in package_export_content_modules[values]:
+        slide_title = package_export_content_modules[values][EXPORT_TASKS][slide_item]['title']
+    elif QUESTION_DESC in package_export_content_modules[values]:
+        slide_title = package_export_content_modules[values][QUESTION_DESC][slide_item]['title']
+
+    return slide_title
 
 
 def get_slide_data_listed(package_export_content_modules: dict, values: str):
     """Return raw data from package and package name."""
-    package_value = package_export_content_modules[values]['contentModuleExportContentModule']
-    package_name = package_value['name']
+    package_value = package_export_content_modules[values][EXPORT_MOD_STRING]
+    package_name = package_value[N_STR]
     raw_data_dict = {package_name: {}}
-    content_data_node = package_export_content_modules[values]['contentModuleExportQuestionDescriptions']
+    if len(package_export_content_modules[values][QUESTION_DESC]) > 0:
+        content_data_node = package_export_content_modules[values][QUESTION_DESC]
+    else:
+        content_data_node = package_export_content_modules[values][TASK_DESC]
     for slide_item in content_data_node:
-        if 'contentModuleExportTasks' in package_export_content_modules[values]:
-            slide_title = package_export_content_modules[values]['contentModuleExportTasks'][slide_item]['title']
-        elif 'contentModuleExportQuestionDescriptions' in package_export_content_modules[values]:
-            slide_title = package_export_content_modules[values]['contentModuleExportQuestionDescriptions'][
-                slide_item]['title']
+        slide_title = render_slide_name(package_export_content_modules, values, slide_item)
         info(package_name + ": Rendering " + str(len(content_data_node)) + " slides into raw data.")
         if content_data_node[slide_item]:
-            if 'data' in content_data_node[slide_item]:
-                check_dic = content_data_node[slide_item]['data']['document']['nodes']
+            if D_STR in content_data_node[slide_item]:
+                check_dic = content_data_node[slide_item][D_STR][DOC_STR][NODES]
                 render_slide_data = render_slide(check_dic)
                 if render_slide_data:
                     raw_data_dict[package_name][slide_title] = render_slide_data
@@ -82,15 +92,15 @@ def cep_check(raw_slide_data: str, package_name: str) -> None:
     """
     cep_item_dict = CEPS
     for cep_items in cep_item_dict:
-        cep_check_result = cep_check_message(cep_item_dict[cep_items]["cep_number"])
-        if cep_item_dict[cep_items]["cep_check_type"] is "contentModuleExportQuestionDescriptions":
-            if "string_search" in cep_item_dict[cep_items]:
-                cep_check_result = f"{package_name}: CEP {cep_item_dict[cep_items]['cep_number']} - Passed"
-            if "regex_search" in cep_item_dict[cep_items]:
-                test_search = cep_item_dict[cep_items]["regex_search"]
+        cep_check_result = cep_check_message(cep_item_dict[cep_items][CEP_NUM])
+        if cep_item_dict[cep_items][CEP_TYPE_CHECK] is QUESTION_DESC:
+            if STR_SEARCH in cep_item_dict[cep_items]:
+                cep_check_result = f"{package_name}: CEP {cep_item_dict[cep_items][CEP_NUM]} - Passed"
+            if RE_SEARCH in cep_item_dict[cep_items]:
+                test_search = cep_item_dict[cep_items][RE_SEARCH]
                 x = re.findall(test_search, raw_slide_data)
                 if len(x) > 0:
-                    cep_check_result = f"{package_name}: CEP {cep_item_dict[cep_items]['cep_number']} - Passed"
+                    cep_check_result = f"{package_name}: CEP {cep_item_dict[cep_items][CEP_NUM]} - Passed"
             if cep_check_result:
                 if "Passed" not in cep_check_result:
                     error(f"{package_name}: {cep_check_result}")
@@ -102,25 +112,33 @@ def render_list_item(slide_line: dict, heading_level: str):
     """Return formatted list data."""
     raw_list_data = ""
     for node in slide_line:
-        raw_list_data += f"{heading_level}{node['text']}"
+        raw_list_data += f"{heading_level}{node[TXT]}"
     if len(heading_level) == len(raw_list_data):
         return None
     return raw_list_data
 
 
-def render_nested_list_nodes(slide_line: dict, format_string: str):
+def render_nested_list_nodes(slide_line: dict, format_string: str, list_type: str):
     """Return raw list data from nested node data."""
     raw_list_data = ""
+    order_count = 0
     for node in slide_line:
-        if 'text' in node:
-            raw_list_data += add_newline(f"   * {node['text']}")
+        order_count += 1
+        if TXT in node:
+            if list_type is UNORDERED_STR:
+                raw_list_data += f"   * {node[TXT]}{NEW_LINE}"
+            elif list_type is ORDERED_STR:
+                raw_list_data += f"{str(order_count)}. {node[TXT]}{NEW_LINE}"
         else:
-            for nested_node in node["nodes"]:
-                if 'text' in nested_node:
-                    raw_list_data += add_newline(format_string + nested_node['text'])
+            for nested_node in node[NODES]:
+                if TXT in nested_node:
+                    raw_list_data += f"{format_string}{nested_node[TXT]}{NEW_LINE}"
                 else:
-                    if 'text' in nested_node["nodes"][0]:
-                        raw_list_data += add_newline(f"   * {nested_node['nodes'][0]['text']}")
+                    if TXT in nested_node[NODES][0]:
+                        if list_type is UNORDERED_STR:
+                            raw_list_data += f"   * {nested_node[NODES][0][TXT]}{NEW_LINE}"
+                        elif list_type is ORDERED_STR:
+                            raw_list_data += f"{str(order_count)}. {nested_node[NODES][0][TXT]}{NEW_LINE}"
     return raw_list_data
 
 
@@ -129,58 +147,69 @@ def render_slide(slide_dict: dict):
     raw_slide_data = ""
     if slide_dict:
         for slide_line in slide_dict:
-            if 'type' in slide_line:
-                if 'paragraph' in slide_line['type']:
-                    if "marks" in slide_line['nodes'][0] and len(slide_line['nodes'][0]['marks']) > 0:
-                        if "bold" == slide_line['nodes'][0]['marks'][0]['type']:
-                            if len(slide_line['nodes'][0]['text']) > 0:
-                                raw_slide_data += add_newline(strip_end_space(slide_line['nodes'][0]['text']))
+            raw_slide_data += NEW_LINE
+            if TYPE_STRING in slide_line:
+                if 'paragraph' in slide_line[TYPE_STRING]:
+                    if "marks" in slide_line[NODES][0] and len(slide_line[NODES][0][M_STR]) > 0:
+                        if "bold" == slide_line[NODES][0][M_STR][0][TYPE_STRING]:
+                            if len(slide_line[NODES][0][TXT]) > 0:
+                                raw_slide_data += f"**{strip_end_space(slide_line[NODES][0][TXT])}**"
+                        elif 'code-mark' == slide_line[NODES][0][M_STR][0][TYPE_STRING]:
+                            raw_slide_data += f"`{strip_end_space(slide_line[NODES][0][TXT])}`"
+                        elif 'strikethrough' == slide_line[NODES][0][M_STR][0][TYPE_STRING]:
+                            raw_slide_data += f"~~{strip_end_space(slide_line[NODES][0][TXT])}~~"
+                        elif 'underline' == slide_line[NODES][0][M_STR][0][TYPE_STRING]:
+                            raw_slide_data += f"__{strip_end_space(slide_line[NODES][0][TXT])}__"
+                        else:
+                            error(f"Missing type parsing for value: {str(slide_line[NODES][0][M_STR][0][TYPE_STRING])}")
                     else:
-                        raw_slide_data += add_newline(slide_line['nodes'][0]['text'])
-                elif 'unordered-list' in slide_line['type']:
-                    raw_list_data = render_nested_list_nodes(slide_line['nodes'], "   * ")
+                        raw_slide_data += slide_line[NODES][0][TXT]
+                elif 'unordered-list' in slide_line[TYPE_STRING]:
+                    raw_list_data = render_nested_list_nodes(slide_line[NODES], "   * ",  UNORDERED_STR)
                     if len(raw_list_data) > 0:
                         raw_slide_data += raw_list_data
-                elif 'ordered-list' in slide_line['type']:
-                    raw_list_data = render_nested_list_nodes(slide_line['nodes'], "   * ")
-                    if len(raw_list_data) > 0:
-                        raw_slide_data += add_newline(raw_list_data)
-                elif 'list-item-child' in slide_line['type']:
-                    raw_list_data = render_nested_list_nodes(slide_line['nodes'], "   * ")
+                elif 'ordered-list' in slide_line[TYPE_STRING]:
+                    raw_list_data = render_nested_list_nodes(slide_line[NODES], "  ", ORDERED_STR)
                     if len(raw_list_data) > 0:
                         raw_slide_data += raw_list_data
-                elif 'heading-two' in slide_line['type']:
-                    raw_heading_data = render_list_item(slide_line['nodes'], '### ')
-                    if raw_heading_data:
-                        raw_slide_data += add_newline(raw_heading_data)
-                elif 'heading-one' in slide_line['type']:
-                    raw_heading_data = render_list_item(slide_line['nodes'], '## ')
-                    if raw_heading_data:
-                        raw_slide_data += add_newline(raw_heading_data)
-                elif 'image-block' in slide_line['type']:
-                    picture_id = id_generator()
-                    raw_heading_data = f"![{picture_id}]({slide_line['data']['imageData']})"
-                    if raw_heading_data:
-                        raw_slide_data += add_newline(raw_heading_data)
-                elif 'code-block' in slide_line['type']:
-                    raw_heading_data = render_nested_list_nodes(slide_line['nodes'], "    ")
+                elif 'list-item-child' in slide_line[TYPE_STRING]:
+                    raw_list_data = render_nested_list_nodes(slide_line[NODES], "   * ",  UNORDERED_STR)
+                    if len(raw_list_data) > 0:
+                        raw_slide_data += raw_list_data
+                elif 'heading-two' in slide_line[TYPE_STRING]:
+                    raw_heading_data = render_list_item(slide_line[NODES], '### ')
                     if raw_heading_data:
                         raw_slide_data += raw_heading_data
-                elif 'code-line' in slide_line['type']:
-                    raw_heading_data = render_nested_list_nodes(slide_line['nodes'], "    ")
+                elif 'heading-one' in slide_line[TYPE_STRING]:
+                    raw_heading_data = render_list_item(slide_line[NODES], '## ')
+                    if raw_heading_data:
+                        raw_slide_data += raw_heading_data
+                elif 'image-block' in slide_line[TYPE_STRING]:
+                    picture_id = id_generator()
+                    raw_heading_data = f"![{picture_id}]({slide_line[D_STR]['imageData']})"
+                    if raw_heading_data:
+                        raw_slide_data += raw_heading_data
+                elif 'code-block' in slide_line[TYPE_STRING]:
+                    raw_heading_data = render_nested_list_nodes(slide_line[NODES], "    ", UNORDERED_STR)
+                    if raw_heading_data:
+                        raw_slide_data += raw_heading_data
+                elif 'code-line' in slide_line[TYPE_STRING]:
+                    raw_heading_data = render_nested_list_nodes(slide_line[NODES], "\n     ", UNORDERED_STR)
                     if raw_heading_data and len(raw_heading_data) > 5:
-                        raw_slide_data += add_newline(raw_heading_data)
+                        raw_slide_data += raw_heading_data
                 else:
-                    error("Data type " + slide_line['type'] + "unknown")
+                    error("Data type " + slide_line[TYPE_STRING] + "unknown")
                     raw_slide_data += " Data Type Unknown\n"
+            raw_slide_data += NEW_LINE
+            
     return raw_slide_data
 
 
 def package_export_module_info(raw_data):
     package_data = {}
-    package_export_content_modules = get_value(content_module_string, raw_data)[content_module_string]
+    package_export_content_modules = get_value(CONTENT_MOD_STRING, raw_data)[CONTENT_MOD_STRING]
     for values in package_export_content_modules:
-        module_data = ModuleExportContentModule(package_export_content_modules[values][export_module_string])
+        module_data = ModuleExportContentModule(package_export_content_modules[values][EXPORT_MOD_STRING])
         for data_value, value in module_data.to_dict().items():
             if value and data_value != ('questions' or 'tasks'):
                 package_data[data_value] = value
@@ -188,7 +217,7 @@ def package_export_module_info(raw_data):
 
 
 def package_export_package_info(raw_data):
-    package_dict = PackageExport(raw_data[package_string])
+    package_dict = PackageExport(raw_data[PACKAGE_STR])
     package_data = {}
     for data_value, value in package_dict.to_dict().items():
         if value:

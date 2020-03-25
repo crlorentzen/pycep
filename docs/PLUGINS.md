@@ -58,3 +58,10 @@ Currently the render plugin only supports exporting a package export json tar.gz
 Currently the info plugin prints basic information about modules.
 
     cepcli.py -f Demo_Package_export.tar.gz -p packageinfo
+
+
+## Generate plugin
+
+Currently the generate plugin compiles a package directory into an export package json modules.
+
+    cepcli.py -f package_module_directory -p generate -o package_module_export.tar.gz
