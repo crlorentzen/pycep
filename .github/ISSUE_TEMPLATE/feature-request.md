@@ -1,7 +1,9 @@
 ---
 name: Feature request
 about: Suggest an idea for pycep
-labels: 
+title: ''
+labels: ''
+assignees: ''
 
 ---
 
