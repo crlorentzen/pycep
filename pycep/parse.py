@@ -184,6 +184,16 @@ def render_slide(slide_dict: dict):
                     raw_heading_data = render_list_item(slide_line[NODES], '## ')
                     if raw_heading_data:
                         raw_slide_data += raw_heading_data
+                elif 'bold' in slide_line[TYPE_STRING]:
+                    raw_heading_data = render_list_item(slide_line[NODES], '***')
+                    raw_heading_data += "***"
+                    if raw_heading_data:
+                        raw_slide_data += raw_heading_data
+                elif 'italic' in slide_line[TYPE_STRING]:
+                    raw_heading_data = render_list_item(slide_line[NODES], '*')
+                    raw_heading_data += "*"
+                    if raw_heading_data:
+                        raw_slide_data += raw_heading_data
                 elif 'image-block' in slide_line[TYPE_STRING]:
                     picture_id = id_generator()
                     raw_heading_data = f"![{picture_id}]({slide_line[D_STR]['imageData']})"
@@ -198,7 +208,7 @@ def render_slide(slide_dict: dict):
                     if raw_heading_data and len(raw_heading_data) > 5:
                         raw_slide_data += raw_heading_data
                 else:
-                    error("Data type " + slide_line[TYPE_STRING] + "unknown")
+                    error(f"Data type {slide_line[TYPE_STRING]} unknown")
                     raw_slide_data += " Data Type Unknown\n"
             raw_slide_data += NEW_LINE
             

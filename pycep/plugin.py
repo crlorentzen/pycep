@@ -3,7 +3,6 @@
 import re
 import nltk
 from os import mkdir
-from json import dumps
 from spellchecker import SpellChecker
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from pycep.render import write_to_file
@@ -33,10 +32,9 @@ def json_format_str(answer_data, slide_item):
     slide_answer_key = None
     for title in answer_data.items():
         if title[1]['title'] is slide_item:
-            slide_answer_key = str({"question": title[1]['question']}).replace("'", '"')
+            slide_answer_key = str(title[1]).replace("'", '"')
             slide_answer_key = slide_answer_key.replace("True", "true")
             slide_answer_key = slide_answer_key.replace("False", "false")
-
     return slide_answer_key
 
 
@@ -44,29 +42,20 @@ def markdown_out(raw_data: dict, output: str):
     """Output package to md format."""
     package_export_content_modules = get_value(CONTENT_MOD_STRING, raw_data)[CONTENT_MOD_STRING]
     main_package_data = package_export_package_info(raw_data)
-    file_name = f"{strip_unsafe_file_names(main_package_data[N_STR].strip(' '))}{JS_EXT}"
+    file_name = f"{strip_unsafe_file_names(main_package_data[N_STR].strip(' '))}{YAML_EXT}"
     if CONTENT_MODS in main_package_data:
         main_package_data[CONTENT_MODS] = get_content_module_names(main_package_data[CONTENT_MODS],
                                                                    package_export_content_modules)
-    write_to_file(f"{output}{DIR_CHARACTER}{file_name}", dumps(main_package_data))
+    write_to_file(f"{output}{DIR_CHARACTER}{file_name}",
+                  PackageExport(raw_data[PACKAGE_STR]).to_yml())
     for values in package_export_content_modules:
         raw_slide_data = get_slide_data_listed(package_export_content_modules, values)
         info("Processing slides with render plugin now!")
         answer_data = package_export_content_modules[values][EXPORT_TASKS]
         for package in raw_slide_data:
             package_name_value = strip_unsafe_file_names(package)
-            module_json = ModuleExportContentModule(package_export_content_modules[values][
-                                                                     EXPORT_MOD_STRING]).to_dict()
-
-            yml_out = f"description: '{module_json['description']}'\n" \
-                      f"name: '{module_json['name']}'\n" \
-                      f"owner: '{module_json['owner']}'\n" \
-                      f"randomizable: {module_json['randomizable']}\n" \
-                      f"status:  '{module_json['status']}'\n" \
-                      f"survey:  {module_json['survey']}\n" \
-                      f"duration:  {module_json['duration']}\n"
-
-            write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}.yml", yml_out)
+            write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{YAML_EXT}",
+                          ModuleExportContentModule(package_export_content_modules[values][EXPORT_MOD_STRING]).to_yml())
             for slide_item in raw_slide_data[package]:
                 slide_answer_key = json_format_str(answer_data, slide_item)
                 try:

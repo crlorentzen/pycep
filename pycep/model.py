@@ -25,13 +25,26 @@ class PackageExport:
     def __init__(self, raw_data):
         self.enrollment_type = get_value(ENROLLMENT_TYPE, raw_data)[ENROLLMENT_TYPE]
         self.status = get_value(STAT_S, raw_data)[STAT_S]
-        self.objective = get_value('objective', raw_data)['objective']
+        objective = get_value('objective', raw_data)['objective']
+        if objective:
+            self.objective = get_value('objective', raw_data)['objective']
+        else:
+            self.objective = []
+        self.reveal_answers = get_value(REVEAL_ANSWERS, raw_data)[REVEAL_ANSWERS]
+        self.randomized_questions = get_value(RANDOM_QUESTIONS, raw_data)[RANDOM_QUESTIONS]
+        self.self_enroll_enabled = get_value(SELF_ENROLLMENT, raw_data)[SELF_ENROLLMENT]
+        self.leaderboard_enabled = get_value(LEADERBOARD, raw_data)[LEADERBOARD]
         self.image = get_value('image', raw_data)['image']
         self.tool = get_value('tool', raw_data)['tool']
         self.url_value = get_value('url', raw_data)['url']
-        self.resources = get_value('resources', raw_data)['resources']
+        resources = get_value('resources', raw_data)['resources']
+        if resources:
+            self.resources = get_value('resources', raw_data)['resources']
+        else:
+            self.resources = []
         self.owner = get_value('owner', raw_data)['owner']
         self.name_value = get_value(N_STR, raw_data)[N_STR]
+        self.event_time_limit = get_value(EVENT_TIME, raw_data)[EVENT_TIME]
         self.content_modules = get_value(CONTENT_MODS, raw_data)[CONTENT_MODS]
         self.difficulty = get_value('difficulty', raw_data)['difficulty']
         description = get_value('description', raw_data)['description']
@@ -52,9 +65,40 @@ class PackageExport:
             N_STR: self.name_value,
             CONTENT_MODS: self.content_modules,
             'difficulty': self.difficulty,
-            'description': self.description
+            'description': self.description,
+            SELF_ENROLLMENT: self.self_enroll_enabled,
+            REVEAL_ANSWERS: self.reveal_answers,
+            EVENT_TIME: self.event_time_limit,
+            RANDOM_QUESTIONS: self.randomized_questions,
+            LEADERBOARD: self.leaderboard_enabled
+
         }
         return data
+
+    def to_yml(self):
+        """Return dictionary object type for to/from
+         dict formatting."""
+        description = ""
+        if self.description:
+            description = self.description
+        yml_out = f"{ENROLLMENT_TYPE}: '{self.enrollment_type}'\n" \
+                  f"{STAT_S}: '{self.status}'\n" \
+                  f"owner: '{self.owner}'\n" \
+                  f"{N_STR}:  '{self.name_value}'\n" \
+                  f"objective: {self.objective}\n" \
+                  f"url:  '{self.url_value}'\n" \
+                  f"image: '{self.image}'\n" \
+                  f"{SELF_ENROLLMENT}: {self.self_enroll_enabled}\n" \
+                  f"tool:  '{self.tool}'\n" \
+                  f"{RANDOM_QUESTIONS}: {self.randomized_questions}\n" \
+                  f"resources:  {self.resources}\n" \
+                  f"{LEADERBOARD}: {str(self.leaderboard_enabled)}\n" \
+                  f"{CONTENT_MODS}:  {self.content_modules}\n" \
+                  f"difficulty:  '{self.difficulty}'\n" \
+                  f"description:  '{description}'\n" \
+                  f"{REVEAL_ANSWERS}: {self.reveal_answers}\n" \
+                  f"{EVENT_TIME}: {str(self.event_time_limit)}\n"
+        return yml_out
 
 
 class ModuleExportContentModule:
@@ -66,7 +110,7 @@ class ModuleExportContentModule:
         if 'cloneSource' in clone_source:
             self.clone_source = clone_source['cloneSource']
         else:
-            self.clone_source = None
+            self.clone_source = []
         self.owner = get_value('owner', raw_data)['owner']
         self.name_value = get_value(N_STR, raw_data)[N_STR]
         question_data = get_value('questions', raw_data)
@@ -93,3 +137,18 @@ class ModuleExportContentModule:
             'description': self.description
         }
         return data
+
+    def to_yml(self):
+        """Return dictionary object type for to/from
+         dict formatting."""
+        yml_out = ""
+        yml_out += f"description: '{str(self.description)}'\n"
+        yml_out += f"name: '{self.name_value}'\n"
+        if len(self.clone_source) > 0:
+            yml_out += f"cloneSource: {self.clone_source}\n"
+        yml_out += f"owner: '{self.owner}'\n"
+        yml_out += f"randomizable: {self.randomizable}\n"
+        yml_out += f"status:  '{self.status}'\n"
+        yml_out += f"survey:  {self.survey}\n"
+        yml_out += f"duration:  {str(self.duration)}"
+        return yml_out

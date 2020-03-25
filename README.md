@@ -51,11 +51,11 @@ For more information on plugins please see [Plugin Guide](docs/PLUGINS.md)
 -   Spellcheck Plugin
 -   Info plugin
 -   F strings used as much as possible
+-   From Markdown format to package export
 
 
 ### Coming Soon!
 
--   From Markdown format to package export
 -   Custom CEP json support
 -   Plagiarism Check
 -   Reading level score
