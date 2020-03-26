@@ -24,7 +24,9 @@ def linter(raw_data: dict):
 def get_content_module_names(content_list, package_export_content_modules):
     new_list = []
     for items in content_list:
-        new_list.append(package_export_content_modules[items][EXPORT_MOD_STRING][N_STR])
+        for values in package_export_content_modules[items][EXPORT_MOD_STRING][TASKS]:
+            test = values[0]["val"]["title"]
+            new_list.append(test)
     return new_list
 
 
@@ -60,8 +62,7 @@ def markdown_out(raw_data: dict, output: str):
                 slide_answer_key = json_format_str(answer_data, slide_item)
                 try:
                     slide_name_string = strip_unsafe_file_names(slide_item)
-                    write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}{slide_name_string}"
-                                  f" {MD_EXT}", (h_one_format(slide_item) + raw_slide_data[package][slide_item]))
+                    write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}{slide_name_string}{MD_EXT}", (h_one_format(slide_item) + raw_slide_data[package][slide_item]))
                     if slide_answer_key:
                         write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}"
                                       f"{slide_name_string}{JS_EXT}", slide_answer_key)
@@ -88,6 +89,12 @@ def markdown_out(raw_data: dict, output: str):
                                               (str(slide_answer_key)))
                         except FileExistsError:
                             error(f"{package} {slide_item} duplicate slide names found.")
+                        except:
+                            error("Unknown error not parsing properly")
+                    except:
+                        error("Unknown error not parsing properly")
+                except:
+                    error("Unknown error not parsing properly")
 
 
 def spell_check_slide(spell, line: dict, titles: str, package: str) -> None:

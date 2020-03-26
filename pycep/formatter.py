@@ -47,6 +47,7 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
     module_config_yaml = YamlInfo(mod_config_path, "none", "none").get()
     slide_info_dict = {}
     slide_task_list = []
+    slide_task_exports = {}
     for file_name in file_list:
         full_file_name = file_name[:-5]
         if file_name[-5:] == JS_EXT:
@@ -54,7 +55,8 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                 task_id = str(uuid4())
                 task_id_string = f"task-{task_id}"
                 task_dict = load(file_raw)
-                slide_task_list.append({"key": task_id_string, "val": task_dict})
+                slide_task_list.append([{"key": task_id_string, "val": task_dict}])
+                slide_task_exports[task_id_string] = task_dict
             with open(f"{dir_path1}/{full_file_name}{MD_EXT}", 'r') as file_raw:
                 slide_info_dict[task_id_string] = file_raw.read()
     module_id = str(uuid4())
@@ -70,7 +72,7 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
     build_json[PACKAGE_STR] = package_config_yaml
     build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS] = {}
     # TODO Walk path for all markdown files and render a slide for each
-    build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING][TASKS] = [slide_task_list]
+    build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING][TASKS] = slide_task_list
     build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = {}
     build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = {}
     # TODO Build proper markdown parser to dict
@@ -115,16 +117,20 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
             slide_list_items.append(build_node_package(code_list, "code-block"))
         elif len(star_list) > 0:
             slide_list_items.append(build_node_package(star_list, "unordered-list"))
-        question_data = {node_data: {"data": {"document": {"data": {}, "object": "document", "nodes": slide_list_items},
-                                               "object": "value"}, "version": 2}}
+        question_data[node_data] = {"data": {"document": {"data": {}, "object": "document", "nodes": slide_list_items},
+                                               "object": "value"}, "version": 2}
     build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = {}
     for slide in slide_info_dict:
         # TODO parse attachment data
         build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS][slide] = {}
-        build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS][slide] = {}
-        build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS][slide] = slide_task_list[0]['val']
+
+    build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = slide_task_exports
     build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = question_data
-    build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = question_data
+    questions_descriptions = {}
+    for slides in slide_task_exports:
+        if "question" in slide_task_exports[slides]:
+            questions_descriptions[slides] = question_data[slides]
+    build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = questions_descriptions
     build_json['packageKey'] = str(uuid4())
 
     try:
