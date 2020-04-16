@@ -62,7 +62,7 @@ def get_slide_data_listed(package_export_content_modules: dict, values: str):
     package_value = package_export_content_modules[values][EXPORT_MOD_STRING]
     package_name = package_value[N_STR]
     raw_data_dict = {package_name: {}}
-    content_data_node = package_export_content_modules[values][TASK_DESC]
+    content_data_node = package_export_content_modules[values][QUESTION_DESC]
     for slide_item in content_data_node:
         slide_title = render_slide_name(package_export_content_modules, values, slide_item)
         info(package_name + ": Rendering " + str(len(content_data_node)) + " slides into raw data.")
