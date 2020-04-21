@@ -1,9 +1,10 @@
 """The pycep format function library."""
 # coding=utf-8
 import tarfile
+from shutil import rmtree
 from uuid import uuid4
 from json import dumps, load
-from os import mkdir, chdir, walk, getcwd, removedirs
+from os import mkdir, chdir, walk, getcwd, rmdir
 
 from yaml_info.yamlinfo import YamlInfo
 
@@ -38,112 +39,108 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
     tar_data = tarfile.open(f"{input_package_export_name}", "w:gz")
     package_config_path = f"{input_dir}/{package_name}.yml"
     package_config_yaml = YamlInfo(package_config_path, "none", "none").get()
-    dir_path1 = None
-    file_list = []
-    for (dir_path, dirs, files) in walk(package_dir):
-        file_list = files
-        dir_path1 = dir_path
-    mod_config_path = f"{dir_path1}.yml"
-    module_config_yaml = YamlInfo(mod_config_path, "none", "none").get()
-    slide_info_dict = {}
-    slide_task_list = []
-    slide_task_exports = {}
-    for file_name in file_list:
-        full_file_name = file_name[:-5]
-        if file_name[-5:] == JS_EXT:
-            with open(f"{dir_path1}/{file_name}", 'r') as file_raw:
-                task_id = str(uuid4())
-                task_id_string = f"task-{task_id}"
-                task_dict = load(file_raw)
-                slide_task_list.append([{"key": task_id_string, "val": task_dict}])
-                slide_task_exports[task_id_string] = task_dict
-            with open(f"{dir_path1}/{full_file_name}{MD_EXT}", 'r') as file_raw:
-                slide_info_dict[task_id_string] = file_raw.read()
-    module_id = str(uuid4())
-    module_id_string = f"{module_id}"
-    module_dict_value = module_id_string
-    package_config_yaml[CONTENT_MODS] = [module_id_string]
     build_json = {}
-    build_json[CONTENT_MOD_STRING] = {}
-    build_json[CONTENT_MOD_STRING][module_dict_value] = {}
-    build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING] = module_config_yaml
-    build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_MAPPING_TAGS] = {}
     build_json[PACKAGE_STR] = {}
     build_json[PACKAGE_STR] = package_config_yaml
-    build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS] = {}
-    # TODO Walk path for all markdown files and render a slide for each
-    build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING][TASKS] = slide_task_list
-    build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = {}
-    build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = {}
-    # TODO Build proper markdown parser to dict
-    question_data = {}
-    slide_list = []
-    for node_data in slide_info_dict:
-        slide_list_items = []
-        code_list = []
-        star_list = []
-        for line_data in slide_info_dict[node_data].splitlines():
-            line_chunk = line_data[:4]
-            if line_chunk == "### ":
-                slide_list_items.append(build_node_package([build_text_line(line_data[4:])], "heading-two"))
-            elif line_chunk == "   -":
-                star_list.append(build_node_package([build_node_package([build_text_line(line_data[5:])],
-                                                                        "list-item-child")], "list-item"))
-            elif line_chunk == "   *":
-                star_list.append(build_node_package([build_node_package([build_text_line(line_data[5:])],
-                                                                        "list-item-child")], "list-item"))
-            elif line_chunk == "    ":
-                code_list.append(build_node_package([build_text_line(f"{line_data[4:]}\r")], "code-line"))
-            elif line_chunk[:-1] == "## ":
-                slide_list_items.append(build_node_package([build_text_line(line_data[3:])], "heading-one"))
-            elif line_chunk[:-1] == "***":
-                slide_list_items.append(build_node_package([build_text_line(line_data[3:-3])], "bold"))
-            elif line_chunk[:-2] == "# ":
-                print("Title ")
-            elif line_chunk[:-2] == "![":
-                image_data = build_node_package([build_text_line("")], "image-block")
-                image_data["data"] = {"imageData": line_data[10:-1]}
-                slide_list_items.append(image_data)
-            elif len(code_list) > 0:
-                slide_list_items.append(build_node_package(code_list, "code-block"))
-                code_list = []
-            elif len(star_list) > 0:
-                slide_list_items.append(build_node_package(star_list, "unordered-list"))
-                star_list = []
-            elif len(line_data) > 0:
-                # TODO add regex parser for text data that contains bold/italic/code font formats
-                slide_list_items.append(build_node_package([build_text_line(line_data)], "paragraph"))
-        if len(code_list) > 0:
-            slide_list_items.append(build_node_package(code_list, "code-block"))
-        elif len(star_list) > 0:
-            slide_list_items.append(build_node_package(star_list, "unordered-list"))
-        question_data[node_data] = {"data": {"document": {"data": {}, "object": "document", "nodes": slide_list_items},
-                                               "object": "value"}, "version": 2}
-    build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = {}
-    for slide in slide_info_dict:
-        # TODO parse attachment data
-        build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS][slide] = {}
-
-    build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = slide_task_exports
-    build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = question_data
-    questions_descriptions = {}
-    for slides in slide_task_exports:
-        if "question" in slide_task_exports[slides]:
-            questions_descriptions[slides] = question_data[slides]
-    build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = questions_descriptions
     build_json['packageKey'] = str(uuid4())
-
     try:
         mkdir(f"{export_dir}/{package_name}")
     except FileExistsError:
-        removedirs(f"{export_dir}/{package_name}")
-
+        rmtree(f"{export_dir}/{package_name}")
+        mkdir(f"{export_dir}/{package_name}")
     mkdir(f"{export_dir}/{package_name}/content-modules")
     tar_data.close()
-    with open(f'data/module-.tar.gz', 'rb') as blank_module_file:
-        module_data = blank_module_file.read()
-    with open(f'{export_dir}/{package_name}/content-modules/{module_id_string}.tar.gz', 'wb') as module_file:
-        module_file.write(module_data)
+    file_list = package_config_yaml["contentModules"]
+    package_config_yaml[CONTENT_MODS] = []
+    build_json[CONTENT_MOD_STRING] = {}
+    for file_name in file_list:
+        mod_config_path = f"{input_dir}/{file_name}{YAML_EXT}"
+        module_config_yaml = YamlInfo(mod_config_path, "none", "none").get()
+        slide_info_dict = {}
+        slide_task_list = []
+        slide_task_exports = {}
+        if "tasks" in module_config_yaml:
+            for tasks in module_config_yaml["tasks"]:
+                full_file_name = tasks
+                task_id = str(uuid4())
+                task_id_string = f"task-{task_id}"
+                task_dict = YamlInfo(f"{input_dir}/{file_name}/{full_file_name}{YAML_EXT}", "none", "none").get()
+                slide_task_list.append([{"key": task_id_string, "val": task_dict}])
+                slide_task_exports[task_id_string] = task_dict
+                with open(f"{input_dir}/{file_name}/{full_file_name}{MD_EXT}", 'r') as file_raw:
+                    slide_info_dict[task_id_string] = file_raw.read()
+        module_id = str(uuid4())
+        module_id_string = f"{module_id}"
+        module_dict_value = module_id_string
+        package_config_yaml[CONTENT_MODS].append(module_id_string)
+        build_json[CONTENT_MOD_STRING][module_dict_value] = {}
+        build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING] = module_config_yaml
+        build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_MAPPING_TAGS] = {}
+        build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS] = {}
+        # TODO Walk path for all markdown files and render a slide for each
+        build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING][TASKS] = slide_task_list
+        build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = {}
+        build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = {}
+        # TODO Build proper markdown parser to dict
+        question_data = {}
+        slide_list = []
+        for node_data in slide_info_dict:
+            slide_list_items = []
+            code_list = []
+            star_list = []
+            for line_data in slide_info_dict[node_data].splitlines():
+                line_chunk = line_data[:4]
+                if line_chunk == "### ":
+                    slide_list_items.append(build_node_package([build_text_line(line_data[4:])], "heading-two"))
+                elif line_chunk == "   -":
+                    star_list.append(build_node_package([build_node_package([build_text_line(line_data[5:])],
+                                                                            "list-item-child")], "list-item"))
+                elif line_chunk == "   *":
+                    star_list.append(build_node_package([build_node_package([build_text_line(line_data[5:])],
+                                                                            "list-item-child")], "list-item"))
+                elif line_chunk == "    ":
+                    code_list.append(build_node_package([build_text_line(f"{line_data[4:]}\r")], "code-line"))
+                elif line_chunk[:-1] == "## ":
+                    slide_list_items.append(build_node_package([build_text_line(line_data[3:])], "heading-one"))
+                elif line_chunk[:-1] == "***":
+                    slide_list_items.append(build_node_package([build_text_line(line_data[3:-3])], "bold"))
+                elif line_chunk[:-2] == "# ":
+                    print("Title ")
+                elif line_chunk[:-2] == "![":
+                    image_data = build_node_package([build_text_line("")], "image-block")
+                    image_data["data"] = {"imageData": line_data[10:-1]}
+                    slide_list_items.append(image_data)
+                elif len(code_list) > 0:
+                    slide_list_items.append(build_node_package(code_list, "code-block"))
+                    code_list = []
+                elif len(star_list) > 0:
+                    slide_list_items.append(build_node_package(star_list, "unordered-list"))
+                    star_list = []
+                elif len(line_data) > 0:
+                    # TODO add regex parser for text data that contains bold/italic/code font formats
+                    slide_list_items.append(build_node_package([build_text_line(line_data)], "paragraph"))
+            if len(code_list) > 0:
+                slide_list_items.append(build_node_package(code_list, "code-block"))
+            elif len(star_list) > 0:
+                slide_list_items.append(build_node_package(star_list, "unordered-list"))
+            question_data[node_data] = {"data": {"document": {"data": {}, "object": "document", "nodes": slide_list_items},
+                                                   "object": "value"}, "version": 2}
+        build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = {}
+        for slide in slide_info_dict:
+            # TODO parse attachment data
+            build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS][slide] = {}
+
+        build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = slide_task_exports
+        build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = question_data
+        questions_descriptions = {}
+        for slides in slide_task_exports:
+            if "question" in slide_task_exports[slides]:
+                questions_descriptions[slides] = question_data[slides]
+        build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = questions_descriptions
+        with open(f'data/module-.tar.gz', 'rb') as blank_module_file:
+            module_data = blank_module_file.read()
+        with open(f'{export_dir}/{package_name}/content-modules/{module_id_string}.tar.gz', 'wb') as module_file:
+            module_file.write(module_data)
     with open(f'{export_dir}/{package_name}/export.version', 'w') as export_version_file:
         export_version_file.write("9")
     with open(f'{export_dir}/{package_name}/package_export{JS_EXT}', 'w') as package_json:

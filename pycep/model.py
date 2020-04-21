@@ -101,6 +101,25 @@ class PackageExport:
         return yml_out
 
 
+class AnswerKey:
+    def __init__(self, raw_data):
+        self.question = get_value("question", raw_data)["question"]
+        self.title = get_value("title", raw_data)["title"]
+        self.vm_keys = get_value("vmKeys", raw_data)["vmKeys"]
+
+    def to_yml(self):
+        """Return dictionary object type for to/from
+         dict formatting."""
+        yml_out = ""
+        yml_out += f"question: {str(self.question)}\n"
+        yml_out += f"title: '{self.title}'\n"
+        if len(self.vm_keys) > 0:
+            yml_out += f"vmKeys: {self.vm_keys}\n"
+        else:
+            yml_out += f"vmKeys: []\n"
+        return yml_out
+
+
 class ModuleExportContentModule:
     def __init__(self, raw_data):
         self.status = get_value(STAT_S, raw_data)[STAT_S]

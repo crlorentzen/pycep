@@ -30,13 +30,14 @@ def get_content_module_names(content_list, package_export_content_modules):
     return new_list
 
 
-def json_format_str(answer_data, slide_item):
+def yml_format_str(answer_data, slide_item):
     slide_answer_key = None
     for title in answer_data.items():
         if title[1]['title'] is slide_item:
-            slide_answer_key = str(title[1]).replace("'", '"')
+            slide_answer_key = AnswerKey(raw_data=title[1]).to_yml()
             slide_answer_key = slide_answer_key.replace("True", "true")
             slide_answer_key = slide_answer_key.replace("False", "false")
+
     return slide_answer_key
 
 
@@ -59,13 +60,13 @@ def markdown_out(raw_data: dict, output: str):
             write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{YAML_EXT}",
                           ModuleExportContentModule(package_export_content_modules[values][EXPORT_MOD_STRING]).to_yml())
             for slide_item in raw_slide_data[package]:
-                slide_answer_key = json_format_str(answer_data, slide_item)
+                slide_answer_key = yml_format_str(answer_data, slide_item)
                 try:
                     slide_name_string = strip_unsafe_file_names(slide_item)
                     write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}{slide_name_string}{MD_EXT}", (h_one_format(slide_item) + raw_slide_data[package][slide_item]))
                     if slide_answer_key:
                         write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}"
-                                      f"{slide_name_string}{JS_EXT}", slide_answer_key)
+                                      f"{slide_name_string}{YAML_EXT}", slide_answer_key)
                 except FileNotFoundError:
                     try:
                         mkdir(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}")
@@ -75,7 +76,7 @@ def markdown_out(raw_data: dict, output: str):
                             f"{MD_EXT}", (h_one_format(slide_item) + raw_slide_data[package][slide_item]))
                         if slide_answer_key:
                             write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}"
-                                          f"{slide_name_string_value}{JS_EXT}",
+                                          f"{slide_name_string_value}{YAML_EXT}",
                                           slide_answer_key)
                     except FileExistsError:
                         try:
@@ -85,7 +86,7 @@ def markdown_out(raw_data: dict, output: str):
                                 f"{MD_EXT}", (h_one_format(slide_item) + raw_slide_data[package][slide_item]))
                             if slide_answer_key:
                                 write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}"
-                                              f"{slide_name_string_value}{JS_EXT}",
+                                              f"{slide_name_string_value}{YAML_EXT}",
                                               (str(slide_answer_key)))
                         except FileExistsError:
                             error(f"{package} {slide_item} duplicate slide names found.")
