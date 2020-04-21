@@ -3,8 +3,8 @@
 import tarfile
 from shutil import rmtree
 from uuid import uuid4
-from json import dumps, load
-from os import mkdir, chdir, walk, getcwd, rmdir
+from json import dumps
+from os import mkdir, chdir, walk, getcwd
 
 from yaml_info.yamlinfo import YamlInfo
 
@@ -57,18 +57,34 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
         mod_config_path = f"{input_dir}/{file_name}{YAML_EXT}"
         module_config_yaml = YamlInfo(mod_config_path, "none", "none").get()
         slide_info_dict = {}
-        slide_task_list = []
         slide_task_exports = {}
+        question_data = {}
+        questions_descriptions = {}
         if "tasks" in module_config_yaml:
+            slide_task_list = []
             for tasks in module_config_yaml["tasks"]:
-                full_file_name = tasks
-                task_id = str(uuid4())
-                task_id_string = f"task-{task_id}"
-                task_dict = YamlInfo(f"{input_dir}/{file_name}/{full_file_name}{YAML_EXT}", "none", "none").get()
-                slide_task_list.append([{"key": task_id_string, "val": task_dict}])
-                slide_task_exports[task_id_string] = task_dict
-                with open(f"{input_dir}/{file_name}/{full_file_name}{MD_EXT}", 'r') as file_raw:
-                    slide_info_dict[task_id_string] = file_raw.read()
+                sub_task_list = []
+                if isinstance(tasks, list):
+                    for task in tasks:
+                        full_file_name = task
+                        task_id = str(uuid4())
+                        task_id_string = f"task-{task_id}"
+                        task_dict = \
+                            YamlInfo(f"{input_dir}/{file_name}/{full_file_name}{YAML_EXT}", "none", "none").get()
+                        sub_task_list.append({"key": task_id_string, "val": task_dict})
+                        slide_task_exports[task_id_string] = task_dict
+                        with open(f"{input_dir}/{file_name}/{full_file_name}{MD_EXT}", 'r') as file_raw:
+                            slide_info_dict[task_id_string] = file_raw.read()
+                    slide_task_list.append(sub_task_list)
+                else:
+                    full_file_name = tasks
+                    task_id = str(uuid4())
+                    task_id_string = f"task-{task_id}"
+                    task_dict = YamlInfo(f"{input_dir}/{file_name}/{full_file_name}{YAML_EXT}", "none", "none").get()
+                    slide_task_list.append([{"key": task_id_string, "val": task_dict}])
+                    slide_task_exports[task_id_string] = task_dict
+                    with open(f"{input_dir}/{file_name}/{full_file_name}{MD_EXT}", 'r') as file_raw:
+                        slide_info_dict[task_id_string] = file_raw.read()
         module_id = str(uuid4())
         module_id_string = f"{module_id}"
         module_dict_value = module_id_string
@@ -82,8 +98,6 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
         build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = {}
         build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = {}
         # TODO Build proper markdown parser to dict
-        question_data = {}
-        slide_list = []
         for node_data in slide_info_dict:
             slide_list_items = []
             code_list = []
@@ -132,10 +146,10 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
 
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = slide_task_exports
         build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = question_data
-        questions_descriptions = {}
         for slides in slide_task_exports:
             if "question" in slide_task_exports[slides]:
                 questions_descriptions[slides] = question_data[slides]
+        #build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_QUESTIONS_STR] = questions_descriptions
         build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = questions_descriptions
         with open(f'data/module-.tar.gz', 'rb') as blank_module_file:
             module_data = blank_module_file.read()

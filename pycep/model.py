@@ -1,6 +1,7 @@
 """The pycep model library."""
 # coding=utf-8
 import platform
+from formatter import strip_unsafe_file_names
 
 from pycep.content_strings import *
 
@@ -25,8 +26,8 @@ class PackageExport:
     def __init__(self, raw_data):
         self.enrollment_type = get_value(ENROLLMENT_TYPE, raw_data)[ENROLLMENT_TYPE]
         self.status = get_value(STAT_S, raw_data)[STAT_S]
-        objective = get_value('objective', raw_data)['objective']
-        if objective:
+        objective = get_value('objective', raw_data)
+        if 'objective' in objective:
             self.objective = get_value('objective', raw_data)['objective']
         else:
             self.objective = []
@@ -103,7 +104,11 @@ class PackageExport:
 
 class AnswerKey:
     def __init__(self, raw_data):
-        self.question = get_value("question", raw_data)["question"]
+        question_query = get_value("question", raw_data)
+        if question_query:
+            self.question = question_query["question"]
+        else:
+            self.question = None
         self.title = get_value("title", raw_data)["title"]
         self.vm_keys = get_value("vmKeys", raw_data)["vmKeys"]
 
@@ -111,7 +116,8 @@ class AnswerKey:
         """Return dictionary object type for to/from
          dict formatting."""
         yml_out = ""
-        yml_out += f"question: {str(self.question)}\n"
+        if self.question:
+            yml_out += f"question: {str(self.question)}\n"
         yml_out += f"title: '{self.title}'\n"
         if len(self.vm_keys) > 0:
             yml_out += f"vmKeys: {self.vm_keys}\n"
@@ -169,5 +175,21 @@ class ModuleExportContentModule:
         yml_out += f"randomizable: {self.randomizable}\n"
         yml_out += f"status:  '{self.status}'\n"
         yml_out += f"survey:  {self.survey}\n"
-        yml_out += f"duration:  {str(self.duration)}"
+        yml_out += f"duration:  {str(self.duration)}\n"
+        task_list = []
+        value_list = []
+        for items in self.questions:
+            count = len(items)
+            for value in items:
+                value_string = strip_unsafe_file_names(value['val']['title'])
+                if count > 1:
+                    value_list.append(value_string)
+                else:
+                    task_list.append(value_string)
+                    count = 0
+            if len(value_list) > 1:
+                task_list.append(value_list)
+                value_list = []
+        yml_out += f"tasks:  {task_list}"
+
         return yml_out

@@ -8,7 +8,7 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from pycep.render import write_to_file
 from pycep.parse import get_slide_data, package_export_module_info, package_export_package_info, \
     get_slide_data_listed, cep_check
-from pycep.formatter import strip_unsafe_file_names, h_one_format, compile_package_data
+from pycep.formatter import h_one_format, compile_package_data
 from pycep.model import *
 
 
@@ -24,8 +24,8 @@ def linter(raw_data: dict):
 def get_content_module_names(content_list, package_export_content_modules):
     new_list = []
     for items in content_list:
-        for values in package_export_content_modules[items][EXPORT_MOD_STRING][TASKS]:
-            test = values[0]["val"]["title"]
+        for values in package_export_content_modules[items][EXPORT_TASKS]:
+            test = strip_unsafe_file_names(package_export_content_modules[items][EXPORT_TASKS][values]["title"])
             new_list.append(test)
     return new_list
 
@@ -41,16 +41,23 @@ def yml_format_str(answer_data, slide_item):
     return slide_answer_key
 
 
+def get_package_data(package_export_content_modules):
+    package_list = []
+    for module in package_export_content_modules:
+        pck_name = strip_unsafe_file_names(package_export_content_modules[module][EXPORT_MOD_STRING]['name'])
+        package_list.append(pck_name)
+    return package_list
+
+
 def markdown_out(raw_data: dict, output: str):
     """Output package to md format."""
     package_export_content_modules = get_value(CONTENT_MOD_STRING, raw_data)[CONTENT_MOD_STRING]
+    package_data = get_package_data(package_export_content_modules)
     main_package_data = package_export_package_info(raw_data)
     file_name = f"{strip_unsafe_file_names(main_package_data[N_STR].strip(' '))}{YAML_EXT}"
-    if CONTENT_MODS in main_package_data:
-        main_package_data[CONTENT_MODS] = get_content_module_names(main_package_data[CONTENT_MODS],
-                                                                   package_export_content_modules)
-    write_to_file(f"{output}{DIR_CHARACTER}{file_name}",
-                  PackageExport(raw_data[PACKAGE_STR]).to_yml())
+    raw_data[PACKAGE_STR]['contentModules'] = package_data
+    package_yml = PackageExport(raw_data[PACKAGE_STR]).to_yml()
+    write_to_file(f"{output}{DIR_CHARACTER}{file_name}", package_yml)
     for values in package_export_content_modules:
         raw_slide_data = get_slide_data_listed(package_export_content_modules, values)
         info("Processing slides with render plugin now!")

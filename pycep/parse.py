@@ -52,7 +52,7 @@ def render_slide_name(package_export_content_modules, values, slide_item):
     if EXPORT_TASKS in package_export_content_modules[values]:
         slide_title = package_export_content_modules[values][EXPORT_TASKS][slide_item]['title']
     elif QUESTION_DESC in package_export_content_modules[values]:
-        slide_title = package_export_content_modules[values][QUESTION_DESC][slide_item]['title']
+        slide_title = package_export_content_modules[values][QUESTION_DESC][slide_item]
 
     return slide_title
 
@@ -69,6 +69,16 @@ def get_slide_data_listed(package_export_content_modules: dict, values: str):
         if content_data_node[slide_item]:
             if D_STR in content_data_node[slide_item]:
                 check_dic = content_data_node[slide_item][D_STR][DOC_STR][NODES]
+                render_slide_data = render_slide(check_dic)
+                if render_slide_data:
+                    raw_data_dict[package_name][slide_title] = render_slide_data
+    task_data_node = package_export_content_modules[values][TASK_DESC]
+    for slide_item in task_data_node:
+        slide_title = render_slide_name(package_export_content_modules, values, slide_item)
+        info(package_name + ": Rendering " + str(len(task_data_node)) + " slides into raw data.")
+        if task_data_node[slide_item]:
+            if D_STR in task_data_node[slide_item]:
+                check_dic = task_data_node[slide_item][D_STR][DOC_STR][NODES]
                 render_slide_data = render_slide(check_dic)
                 if render_slide_data:
                     raw_data_dict[package_name][slide_title] = render_slide_data
@@ -150,7 +160,7 @@ def render_slide(slide_dict: dict):
                     if "marks" in slide_line[NODES][0] and len(slide_line[NODES][0][M_STR]) > 0:
                         if "bold" == slide_line[NODES][0][M_STR][0][TYPE_STRING]:
                             if len(slide_line[NODES][0][TXT]) > 0:
-                                raw_slide_data += f"**{strip_end_space(slide_line[NODES][0][TXT])}**"
+                                raw_slide_data += f"***{strip_end_space(slide_line[NODES][0][TXT])}***"
                         elif 'code-mark' == slide_line[NODES][0][M_STR][0][TYPE_STRING]:
                             raw_slide_data += f"`{strip_end_space(slide_line[NODES][0][TXT])}`"
                         elif 'strikethrough' == slide_line[NODES][0][M_STR][0][TYPE_STRING]:
