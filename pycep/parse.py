@@ -6,8 +6,7 @@ import string
 
 from pycep.ceps import CEPS
 from pycep.render import extract_tar_file
-from pycep.formatter import strip_end_space
-from pycep.model import get_value, ModuleExportContentModule, PackageExport
+from pycep.model import get_value, ModuleExportContentModule, PackageExport, strip_end_space
 from pycep.content_strings import *
 
 

@@ -2,13 +2,11 @@
 # coding=utf-8
 import re
 import nltk
-from os import mkdir
 from spellchecker import SpellChecker
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from pycep.render import write_to_file
 from pycep.parse import get_slide_data, package_export_module_info, package_export_package_info, \
     get_slide_data_listed, cep_check
-from pycep.formatter import h_one_format, compile_package_data
 from pycep.model import *
 
 
