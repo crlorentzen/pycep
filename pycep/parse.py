@@ -159,7 +159,7 @@ def render_slide(slide_dict: dict):
                     if "marks" in slide_line[NODES][0] and len(slide_line[NODES][0][M_STR]) > 0:
                         if "bold" == slide_line[NODES][0][M_STR][0][TYPE_STRING]:
                             if len(slide_line[NODES][0][TXT]) > 0:
-                                raw_slide_data += f"***{strip_end_space(slide_line[NODES][0][TXT])}***"
+                                raw_slide_data += f"***{strip_end_space(slide_line[NODES][0][TXT])[:-1]}***"
                         elif 'code-mark' == slide_line[NODES][0][M_STR][0][TYPE_STRING]:
                             raw_slide_data += f"`{strip_end_space(slide_line[NODES][0][TXT])}`"
                         elif 'strikethrough' == slide_line[NODES][0][M_STR][0][TYPE_STRING]:
