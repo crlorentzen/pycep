@@ -13,7 +13,7 @@ from pycep.content_strings import *
 def open_input_file(input_file, file_type):
     """Return raw data from input file string."""
     if input_file:
-        if file_type is "tar":
+        if file_type == "tar":
             input_data = extract_tar_file(input_file)
         if file_type == "json":
             with open(input_file, 'rb') as raw_json:
@@ -226,10 +226,27 @@ def package_export_module_info(raw_data):
     package_export_content_modules = get_value(CONTENT_MOD_STRING, raw_data)[CONTENT_MOD_STRING]
     for values in package_export_content_modules:
         module_data = ModuleExportContentModule(package_export_content_modules[values][EXPORT_MOD_STRING])
+        package_data[values] = {}
         for data_value, value in module_data.to_dict().items():
             if value and data_value != ('questions' or 'tasks'):
-                package_data[data_value] = value
+                package_data[values][data_value] = value
     return package_data
+
+
+def package_export_question_info(raw_data):
+    package_data = {}
+    package_export_content_modules = get_value(CONTENT_MOD_STRING, raw_data)[CONTENT_MOD_STRING]
+    question_data = {}
+    for values in package_export_content_modules:
+        module_data = ModuleExportContentModule(package_export_content_modules[values][EXPORT_MOD_STRING])
+        package_data[values] = {}
+        for data_value, value in module_data.to_dict().items():
+            if value or data_value == 'questions':
+                package_data[values][data_value] = value
+    for module in package_data:
+        module_name = package_data[module][N_STR]
+        question_data[module_name] = package_data[module]["questions"]
+    return question_data
 
 
 def package_export_package_info(raw_data):

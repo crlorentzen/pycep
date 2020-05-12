@@ -6,7 +6,7 @@ from spellchecker import SpellChecker
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from pycep.render import write_to_file
 from pycep.parse import get_slide_data, package_export_module_info, package_export_package_info, \
-    get_slide_data_listed, cep_check
+    get_slide_data_listed, cep_check, package_export_question_info
 from pycep.model import *
 
 
@@ -194,5 +194,23 @@ def markdown_in(package_export_name: str, input_dir: str, export_dir: str, owner
 
 
 def package_info(raw_data: dict):
-    """Process content module for cep standards."""
+    """Process module data return package information."""
     print(package_export_module_info(raw_data))
+
+
+def package_questions(raw_data: dict):
+    """Return package question data."""
+    data = package_export_question_info(raw_data)
+    for item in data:
+        print(f"Content Module: {item} ")
+        for value in data[item]:
+            for tasks in value:
+                if "question" in tasks['val']:
+                    print(f"\n  Task Title: {tasks['val']['title']}")
+                    print(f"  Task Point Total: {tasks['val']['question']['points']}")
+                    answer_number = 0
+                    for answers in tasks['val']['question']["choices"]:
+                        if answers["correct"] is True:
+                            answer_number += 1
+                            print(f"    Answer {answer_number}: {answers['value']}")
+        print(f"\n")

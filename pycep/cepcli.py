@@ -8,7 +8,7 @@ from logging import DEBUG, ERROR, basicConfig, info
 from pycep import __version__
 from pycep.parse import open_input_file
 from pycep.plugin import linter, markdown_out, spellcheck, package_info, sentiment_analyzer, return_non_data_slide, \
-    markdown_in
+    markdown_in, package_questions
 
 
 def value_check(value, ctx):
@@ -79,8 +79,8 @@ def pycep_cli(input_file, plugin, file_type, output, word_list, input_directory,
     elif "nltk" == plugin:
         info("pycep nltk plugin running now...")
         sentiment_analyzer(input_data)
-    elif "tester" == plugin:
-        tester = return_non_data_slide(input_data)
+    elif "question" == plugin:
+        tester = package_questions(input_data)
         print()
     elif "generate" == plugin:
         markdown_in(output, input_directory, export_dir, owner_id)
