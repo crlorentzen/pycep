@@ -147,7 +147,7 @@ def render_task(task_dict: dict):
                     if "marks" in task_line[NODES][0] and len(task_line[NODES][0][M_STR]) > 0:
                         if "bold" == task_line[NODES][0][M_STR][0][TYPE_STRING]:
                             if len(task_line[NODES][0][TXT]) > 0:
-                                raw_task_data += f"***{strip_end_space(task_line[NODES][0][TXT])[:-1]}***"
+                                raw_task_data += f"**{strip_end_space(task_line[NODES][0][TXT])[:-1]}**"
                         elif 'code-mark' == task_line[NODES][0][M_STR][0][TYPE_STRING]:
                             raw_task_data += f"`{strip_end_space(task_line[NODES][0][TXT])}`"
                         elif 'strikethrough' == task_line[NODES][0][M_STR][0][TYPE_STRING]:
@@ -181,8 +181,8 @@ def render_task(task_dict: dict):
                     if raw_heading_data:
                         raw_task_data += raw_heading_data
                 elif 'bold' in task_line[TYPE_STRING]:
-                    raw_heading_data = render_list_item(task_line[NODES], '***')
-                    raw_heading_data += "***"
+                    raw_heading_data = render_list_item(task_line[NODES], '**')
+                    raw_heading_data += "**"
                     if raw_heading_data:
                         raw_task_data += raw_heading_data
                 elif 'italic' in task_line[TYPE_STRING]:

@@ -52,6 +52,9 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
     build_json['packageKey'] = str(uuid4())
     try:
         mkdir(f"{export_dir}/{package_name}")
+    except FileNotFoundError:
+        mkdir(f"{export_dir}")
+        mkdir(f"{export_dir}/{package_name}")
     except FileExistsError:
         rmtree(f"{export_dir}/{package_name}")
         mkdir(f"{export_dir}/{package_name}")
@@ -88,6 +91,43 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                     task_id = str(uuid4())
                     task_id_string = f"task-{task_id}"
                     task_dict = YamlInfo(f"{input_dir}/{file_name}/{full_file_name}{YAML_EXT}", "none", "none").get()
+                    if "vmKeys" not in task_dict:
+                        task_dict["vmKeys"] = []
+                    else:
+                        vm_list = []
+                        for vm in task_dict["vmKeys"]:
+                            vm_list.append({'key': {'repetitionGroup': task_dict["vmKeys"][vm]['ID'], 'index': task_dict["vmKeys"][vm]['index']}, 'val': vm})
+                        task_dict["vmKeys"] = vm_list
+                    if "answers" in task_dict:
+                        question_list = task_dict["answers"]
+                        tasks_dict = {}
+                        tasks_dict["questions"] = {}
+                        choices = []
+                        true_str = "true"
+                        false_str = "false"
+                        for correct in question_list["correct"]:
+                            choices.append({'value': correct, 'correct': True})
+                        if "incorrect" in question_list:
+                            for wrong in question_list["incorrect"]:
+                                choices.append({'value': wrong, 'correct': False})
+                        hints = []
+                        if "hints" in task_dict:
+                            for hint in task_dict["hints"]:
+                                hints.append({'text': task_dict["hints"][hint]["message"], 'pointsDeduction': task_dict["hints"][hint]["cost"]})
+                            del task_dict["hints"]
+                        tasks_dict["questions"]["choices"] = choices
+                        tasks_dict["questions"]["hints"] = hints
+                        tasks_dict["questions"]["retryCount"] = task_dict["retrycount"]
+                        tasks_dict["questions"]["type"] = task_dict["type"]
+                        tasks_dict["questions"]["points"] = task_dict["pointtotal"]
+                        tasks_dict["questions"]["extraData"] = {}
+                        tasks_dict["questions"]["mappingTags"] = []
+                        task_dict["question"] = tasks_dict["questions"]
+                        del task_dict["answers"]
+                        del task_dict["type"]
+                        del task_dict["pointtotal"]
+                        del task_dict["retrycount"]
+
                     task_task_list.append([{"key": task_id_string, "val": task_dict}])
                     task_task_exports[task_id_string] = task_dict
                     with open(f"{input_dir}/{file_name}/{full_file_name}{MD_EXT}", 'r') as file_raw:
@@ -123,8 +163,8 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                     code_list.append(build_node_package([build_text_line(f"{line_data[4:]}\r")], "code-line"))
                 elif line_chunk[:-1] == "## ":
                     task_list_items.append(build_node_package([build_text_line(line_data[3:])], "heading-one"))
-                elif line_chunk[:-1] == "***":
-                    task_list_items.append(build_node_package([build_text_line(line_data[3:-3])], "bold"))
+                elif line_chunk[:-2] == "**":
+                    task_list_items.append(build_node_package([build_text_line(line_data[2:-2])], "bold"))
                 elif line_chunk[:-2] == "# ":
                     print("Title ")
                 elif line_chunk[:-2] == "![":
@@ -144,8 +184,8 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                 task_list_items.append(build_node_package(code_list, "code-block"))
             elif len(star_list) > 0:
                 task_list_items.append(build_node_package(star_list, "unordered-list"))
-            question_data[node_data] = {"data": {"document": {"data": {}, "object": "document", "nodes": task_list_items},
-                                                   "object": "value"}, "version": 2}
+            question_data[node_data] = {"data": {"document": {
+                "data": {}, "object": "document", "nodes": task_list_items}, "object": "value"}, "version": 2}
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = {}
         for task in task_info_dict:
             # TODO parse attachment data
@@ -156,7 +196,6 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
         for tasks in task_task_exports:
             if "question" in task_task_exports[tasks]:
                 questions_descriptions[tasks] = question_data[tasks]
-        #build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_QUESTIONS_STR] = questions_descriptions
         build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = questions_descriptions
         with open(f'data/module-.tar.gz', 'rb') as blank_module_file:
             module_data = blank_module_file.read()
@@ -271,7 +310,11 @@ class PackageExport:
             self.resources = []
         self.owner = get_value('owner', raw_data)['owner']
         self.name_value = get_value(N_STR, raw_data)[N_STR]
-        self.event_time_limit = get_value(EVENT_TIME, raw_data)[EVENT_TIME]
+        event_time = get_value(EVENT_TIME, raw_data)[EVENT_TIME]
+        if event_time:
+            self.event_time_limit = get_value(EVENT_TIME, raw_data)[EVENT_TIME]
+        else:
+            self.event_time_limit = 0
         self.content_modules = get_value(CONTENT_MODS, raw_data)[CONTENT_MODS]
         self.difficulty = get_value('difficulty', raw_data)['difficulty']
         description = get_value('description', raw_data)['description']
@@ -343,28 +386,31 @@ class AnswerKey:
          dict formatting."""
         yml_out = ""
         if self.question:
-            yml_out += f"Type: {self.question['type']}\n"
-            yml_out += f"PointTotal: {self.question['points']}\n"
-            yml_out += f"RetryCount: {self.question['retryCount']}\n"
-            answer_number = 0
-            answer_data = ""
+            yml_out += f"type: {self.question['type']}\n"
+            yml_out += f"pointtotal: {self.question['points']}\n"
+            yml_out += f"retrycount: {self.question['retryCount']}\n"
+            answer_data = "answers: \n"
+            correct_list = []
+            incorrect_list = []
             for answers in self.question["choices"]:
                 if answers["correct"] is True:
-                    answer_number += 1
-                    answer_data += f"Answer{answer_number}: \"{answers['value']}\" \n"
+                    correct_list.append(answers['value'])
                 elif answers["correct"] is False:
-                    answer_number += 1
-                    answer_data += f"Answer{answer_number}: \"{answers['value']}\" \n  correct: False \n"
+                    incorrect_list.append(answers['value'])
+            if correct_list:
+                answer_data += f"  correct: {correct_list}\n"
+            if incorrect_list:
+                answer_data += f"  incorrect: {incorrect_list}\n"
             yml_out += answer_data
             hint_number = 0
             hints_data = ""
+            hints_data += f"hints:\n"
             for hints in self.question["hints"]:
                 hint_number += 1
-                hints_data += f"Hint{hint_number}:\n"
-                hints_data += f"  Cost: {hints['pointsDeduction']}\n"
+                hints_data += f"  {str(hint_number)}: \n    cost: {hints['pointsDeduction']}\n"
                 hint_text = hints['text'].replace('\n', "\n       ")
                 hint_text = hint_text.replace('"', "\\\"")
-                hints_data += f"  Message: \"{hint_text}\" \n"
+                hints_data += f"    message: \"{hint_text}\" \n"
             yml_out += hints_data
         tite_string = self.title.replace('"', "\\\"")
         yml_out += f"title: \"{tite_string}\" \n"
@@ -374,8 +420,6 @@ class AnswerKey:
                 keys_vm += f"  {items['val']}: \n    ID: \"{items['key']['repetitionGroup']}\"" \
                            f"\n    index: {items['key']['index']}\n"
             yml_out += f"{keys_vm}\n"
-        else:
-            yml_out += f"vmKeys: []\n"
         return yml_out
 
 
