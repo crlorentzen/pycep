@@ -6,7 +6,7 @@ from shutil import rmtree
 from uuid import uuid4
 from json import dumps
 from os import mkdir, chdir, walk, getcwd
-
+from logging import error, info
 from yaml_info.yamlinfo import YamlInfo
 from pycep.content_strings import *
 
@@ -52,6 +52,9 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
     build_json['packageKey'] = str(uuid4())
     try:
         mkdir(f"{export_dir}/{package_name}")
+    except FileNotFoundError:
+        mkdir(f"{export_dir}")
+        mkdir(f"{export_dir}/{package_name}")
     except FileExistsError:
         rmtree(f"{export_dir}/{package_name}")
         mkdir(f"{export_dir}/{package_name}")
@@ -63,12 +66,12 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
     for file_name in file_list:
         mod_config_path = f"{input_dir}/{file_name}{YAML_EXT}"
         module_config_yaml = YamlInfo(mod_config_path, "none", "none").get()
-        slide_info_dict = {}
-        slide_task_exports = {}
+        task_info_dict = {}
+        task_task_exports = {}
         question_data = {}
         questions_descriptions = {}
         if "tasks" in module_config_yaml:
-            slide_task_list = []
+            task_task_list = []
             for tasks in module_config_yaml["tasks"]:
                 sub_task_list = []
                 if isinstance(tasks, list):
@@ -79,19 +82,56 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                         task_dict = \
                             YamlInfo(f"{input_dir}/{file_name}/{full_file_name}{YAML_EXT}", "none", "none").get()
                         sub_task_list.append({"key": task_id_string, "val": task_dict})
-                        slide_task_exports[task_id_string] = task_dict
+                        task_task_exports[task_id_string] = task_dict
                         with open(f"{input_dir}/{file_name}/{full_file_name}{MD_EXT}", 'r') as file_raw:
-                            slide_info_dict[task_id_string] = file_raw.read()
-                    slide_task_list.append(sub_task_list)
+                            task_info_dict[task_id_string] = file_raw.read()
+                    task_task_list.append(sub_task_list)
                 else:
                     full_file_name = tasks
                     task_id = str(uuid4())
                     task_id_string = f"task-{task_id}"
                     task_dict = YamlInfo(f"{input_dir}/{file_name}/{full_file_name}{YAML_EXT}", "none", "none").get()
-                    slide_task_list.append([{"key": task_id_string, "val": task_dict}])
-                    slide_task_exports[task_id_string] = task_dict
+                    if "vmKeys" not in task_dict:
+                        task_dict["vmKeys"] = []
+                    else:
+                        vm_list = []
+                        for vm in task_dict["vmKeys"]:
+                            vm_list.append({'key': {'repetitionGroup': task_dict["vmKeys"][vm]['ID'], 'index': task_dict["vmKeys"][vm]['index']}, 'val': vm})
+                        task_dict["vmKeys"] = vm_list
+                    if "answers" in task_dict:
+                        question_list = task_dict["answers"]
+                        tasks_dict = {}
+                        tasks_dict["questions"] = {}
+                        choices = []
+                        true_str = "true"
+                        false_str = "false"
+                        for correct in question_list["correct"]:
+                            choices.append({'value': correct, 'correct': True})
+                        if "incorrect" in question_list:
+                            for wrong in question_list["incorrect"]:
+                                choices.append({'value': wrong, 'correct': False})
+                        hints = []
+                        if "hints" in task_dict:
+                            for hint in task_dict["hints"]:
+                                hints.append({'text': task_dict["hints"][hint]["message"], 'pointsDeduction': task_dict["hints"][hint]["cost"]})
+                            del task_dict["hints"]
+                        tasks_dict["questions"]["choices"] = choices
+                        tasks_dict["questions"]["hints"] = hints
+                        tasks_dict["questions"]["retryCount"] = task_dict["retrycount"]
+                        tasks_dict["questions"]["type"] = task_dict["type"]
+                        tasks_dict["questions"]["points"] = task_dict["pointtotal"]
+                        tasks_dict["questions"]["extraData"] = {}
+                        tasks_dict["questions"]["mappingTags"] = []
+                        task_dict["question"] = tasks_dict["questions"]
+                        del task_dict["answers"]
+                        del task_dict["type"]
+                        del task_dict["pointtotal"]
+                        del task_dict["retrycount"]
+
+                    task_task_list.append([{"key": task_id_string, "val": task_dict}])
+                    task_task_exports[task_id_string] = task_dict
                     with open(f"{input_dir}/{file_name}/{full_file_name}{MD_EXT}", 'r') as file_raw:
-                        slide_info_dict[task_id_string] = file_raw.read()
+                        task_info_dict[task_id_string] = file_raw.read()
         module_id = str(uuid4())
         module_id_string = f"{module_id}"
         module_dict_value = module_id_string
@@ -100,19 +140,19 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING] = module_config_yaml
         build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_MAPPING_TAGS] = {}
         build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS] = {}
-        # TODO Walk path for all markdown files and render a slide for each
-        build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING][TASKS] = slide_task_list
+        # TODO Walk path for all markdown files and compile a task for each
+        build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING][TASKS] = task_task_list
         build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = {}
         build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = {}
         # TODO Build proper markdown parser to dict
-        for node_data in slide_info_dict:
-            slide_list_items = []
+        for node_data in task_info_dict:
+            task_list_items = []
             code_list = []
             star_list = []
-            for line_data in slide_info_dict[node_data].splitlines():
+            for line_data in task_info_dict[node_data].splitlines():
                 line_chunk = line_data[:4]
                 if line_chunk == "### ":
-                    slide_list_items.append(build_node_package([build_text_line(line_data[4:])], "heading-two"))
+                    task_list_items.append(build_node_package([build_text_line(line_data[4:])], "heading-two"))
                 elif line_chunk == "   -":
                     star_list.append(build_node_package([build_node_package([build_text_line(line_data[5:])],
                                                                             "list-item-child")], "list-item"))
@@ -122,41 +162,40 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                 elif line_chunk == "    ":
                     code_list.append(build_node_package([build_text_line(f"{line_data[4:]}\r")], "code-line"))
                 elif line_chunk[:-1] == "## ":
-                    slide_list_items.append(build_node_package([build_text_line(line_data[3:])], "heading-one"))
-                elif line_chunk[:-1] == "***":
-                    slide_list_items.append(build_node_package([build_text_line(line_data[3:-3])], "bold"))
+                    task_list_items.append(build_node_package([build_text_line(line_data[3:])], "heading-one"))
+                elif line_chunk[:-2] == "**":
+                    task_list_items.append(build_node_package([build_text_line(line_data[2:-2])], "bold"))
                 elif line_chunk[:-2] == "# ":
                     print("Title ")
                 elif line_chunk[:-2] == "![":
                     image_data = build_node_package([build_text_line("")], "image-block")
                     image_data["data"] = {"imageData": line_data[10:-1]}
-                    slide_list_items.append(image_data)
+                    task_list_items.append(image_data)
                 elif len(code_list) > 0:
-                    slide_list_items.append(build_node_package(code_list, "code-block"))
+                    task_list_items.append(build_node_package(code_list, "code-block"))
                     code_list = []
                 elif len(star_list) > 0:
-                    slide_list_items.append(build_node_package(star_list, "unordered-list"))
+                    task_list_items.append(build_node_package(star_list, "unordered-list"))
                     star_list = []
                 elif len(line_data) > 0:
                     # TODO add regex parser for text data that contains bold/italic/code font formats
-                    slide_list_items.append(build_node_package([build_text_line(line_data)], "paragraph"))
+                    task_list_items.append(build_node_package([build_text_line(line_data)], "paragraph"))
             if len(code_list) > 0:
-                slide_list_items.append(build_node_package(code_list, "code-block"))
+                task_list_items.append(build_node_package(code_list, "code-block"))
             elif len(star_list) > 0:
-                slide_list_items.append(build_node_package(star_list, "unordered-list"))
-            question_data[node_data] = {"data": {"document": {"data": {}, "object": "document", "nodes": slide_list_items},
-                                                   "object": "value"}, "version": 2}
+                task_list_items.append(build_node_package(star_list, "unordered-list"))
+            question_data[node_data] = {"data": {"document": {
+                "data": {}, "object": "document", "nodes": task_list_items}, "object": "value"}, "version": 2}
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = {}
-        for slide in slide_info_dict:
+        for task in task_info_dict:
             # TODO parse attachment data
-            build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS][slide] = {}
+            build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS][task] = {}
 
-        build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = slide_task_exports
+        build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = task_task_exports
         build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = question_data
-        for slides in slide_task_exports:
-            if "question" in slide_task_exports[slides]:
-                questions_descriptions[slides] = question_data[slides]
-        #build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_QUESTIONS_STR] = questions_descriptions
+        for tasks in task_task_exports:
+            if "question" in task_task_exports[tasks]:
+                questions_descriptions[tasks] = question_data[tasks]
         build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = questions_descriptions
         with open(f'data/module-.tar.gz', 'rb') as blank_module_file:
             module_data = blank_module_file.read()
@@ -271,7 +310,11 @@ class PackageExport:
             self.resources = []
         self.owner = get_value('owner', raw_data)['owner']
         self.name_value = get_value(N_STR, raw_data)[N_STR]
-        self.event_time_limit = get_value(EVENT_TIME, raw_data)[EVENT_TIME]
+        event_time = get_value(EVENT_TIME, raw_data)[EVENT_TIME]
+        if event_time:
+            self.event_time_limit = get_value(EVENT_TIME, raw_data)[EVENT_TIME]
+        else:
+            self.event_time_limit = 0
         self.content_modules = get_value(CONTENT_MODS, raw_data)[CONTENT_MODS]
         self.difficulty = get_value('difficulty', raw_data)['difficulty']
         description = get_value('description', raw_data)['description']
@@ -343,12 +386,40 @@ class AnswerKey:
          dict formatting."""
         yml_out = ""
         if self.question:
-            yml_out += f"question: {str(self.question)}\n"
-        yml_out += f"title: '{self.title}'\n"
+            yml_out += f"type: {self.question['type']}\n"
+            yml_out += f"pointtotal: {self.question['points']}\n"
+            yml_out += f"retrycount: {self.question['retryCount']}\n"
+            answer_data = "answers: \n"
+            correct_list = []
+            incorrect_list = []
+            for answers in self.question["choices"]:
+                if answers["correct"] is True:
+                    correct_list.append(answers['value'])
+                elif answers["correct"] is False:
+                    incorrect_list.append(answers['value'])
+            if correct_list:
+                answer_data += f"  correct: {correct_list}\n"
+            if incorrect_list:
+                answer_data += f"  incorrect: {incorrect_list}\n"
+            yml_out += answer_data
+            hint_number = 0
+            hints_data = ""
+            hints_data += f"hints:\n"
+            for hints in self.question["hints"]:
+                hint_number += 1
+                hints_data += f"  {str(hint_number)}: \n    cost: {hints['pointsDeduction']}\n"
+                hint_text = hints['text'].replace('\n', "\n       ")
+                hint_text = hint_text.replace('"', "\\\"")
+                hints_data += f"    message: \"{hint_text}\" \n"
+            yml_out += hints_data
+        tite_string = self.title.replace('"', "\\\"")
+        yml_out += f"title: \"{tite_string}\" \n"
         if len(self.vm_keys) > 0:
-            yml_out += f"vmKeys: {self.vm_keys}\n"
-        else:
-            yml_out += f"vmKeys: []\n"
+            keys_vm = "vmKeys:\n"
+            for items in self.vm_keys:
+                keys_vm += f"  {items['val']}: \n    ID: \"{items['key']['repetitionGroup']}\"" \
+                           f"\n    index: {items['key']['index']}\n"
+            yml_out += f"{keys_vm}\n"
         return yml_out
 
 

@@ -1,13 +1,13 @@
 """The pycep python package."""
 # coding=utf-8
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 from pycep import __version__
 
 setup(
     name="pycep",
     version=__version__,
-    packages=["pycep"],
+    packages=find_packages(exclude=['docs', 'tests', 'tools', 'utils']),
     url="https://github.com/simspace/pycep/",
     license='Apache 2.0',
     author="Wyatt Roersma",

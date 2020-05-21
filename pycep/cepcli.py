@@ -2,13 +2,23 @@
 # coding=utf-8
 import click
 import ujson
-
-from logging import DEBUG, ERROR, basicConfig, info
-
+from logging import DEBUG, ERROR, basicConfig, error
 from pycep import __version__
-from pycep.parse import open_input_file
-from pycep.plugin import linter, markdown_out, spellcheck, package_info, sentiment_analyzer, return_non_data_slide, \
-    markdown_in
+from pycep.plugins import load_plugins
+from pycep.render import extract_tar_file
+
+
+def open_input_file(input_file, file_type):
+    """Return raw data from input file string."""
+    if input_file:
+        if file_type == "tar":
+            input_data = extract_tar_file(input_file)
+        if file_type == "json":
+            with open(input_file, 'rb') as raw_json:
+                input_data = raw_json.read()
+        return input_data
+    else:
+        return None
 
 
 def value_check(value, ctx):
@@ -44,7 +54,7 @@ def print_version(ctx, param, value):
 @click.option("--input_file", "-f", help="The Package export tar.gz or the json file .")
 @click.option("--file_type", "-t", help="Input File type format json/tar.gz.", default="tar")
 @click.option("--output", "-o", help="Output file directory.")
-@click.option("--word_list", "-w", help="Input spelling word list.", default="pycep/data/word_list.txt")
+@click.option("--word_list", "-w", help="Input spelling word list.", default="./data/word_list.txt")
 @click.option("--plugin", "-p", help="Plugin for pycep to run.", required=True)
 @click.option("--input_directory", "-g", help="The Package export directory that generates a package export tar.gz or "
                                               "the json file ")
@@ -56,34 +66,16 @@ def print_version(ctx, param, value):
 @click.option("--owner-id", "-uid", help="User account UID.", envvar='OWNER_ID')
 def pycep_cli(input_file, plugin, file_type, output, word_list, input_directory, export_dir, owner_id):
     """Pycep Command line interface."""
+    # Parse input archive and return dict type variable.
     if input_file:
         input_data = ujson.loads(open_input_file(input_file, file_type))
     else:
+        error(
+              "No json type variable loaded from input_file archive. "
+              "Check the package export archive for a proper package_export.json")
         input_data = None
-    if "linter" == plugin:
-        info("pycep linter plugin running now...")
-        linter(input_data)
-
-    elif "render" == plugin:
-        info("pycep render plugin running now...")
-        markdown_out(input_data, output)
-
-    elif "spellcheck" == plugin:
-        info("pycep render plugin running now...")
-        spellcheck(input_data, word_list)
-
-    elif "packageinfo" == plugin:
-        info("pycep package_info plugin running now...")
-        package_info(input_data)
-
-    elif "nltk" == plugin:
-        info("pycep nltk plugin running now...")
-        sentiment_analyzer(input_data)
-    elif "tester" == plugin:
-        tester = return_non_data_slide(input_data)
-        print()
-    elif "generate" == plugin:
-        markdown_in(output, input_directory, export_dir, owner_id)
+    # Pass input data to plugins
+    load_plugins(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id)
 
 
 if __name__ == '__main__':

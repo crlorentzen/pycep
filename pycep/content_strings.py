@@ -1,5 +1,5 @@
-from logging import info, error
-
+"""Pycep common variable string list."""
+# coding=utf-8
 NEW_LINE = '\n'
 CONTENT_MOD_STRING = 'packageExportContentModules'
 EXPORT_MOD_STRING = 'contentModuleExportContentModule'

@@ -3932,3 +3932,7 @@ hashcat
 rainbowcrack
 photoid
 cannot
+kibana
+SecurityOnion
+ctf
+Velma

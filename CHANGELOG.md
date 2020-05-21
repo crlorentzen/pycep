@@ -63,3 +63,12 @@
     - Note: This is not backwards compatible with the json format you must export from a package json or manually create
       the file.
 - Add slide order and module order variables to package export data
+
+## pycep Release 0.0.11
+-   Fix latin bug parsing.
+-   Implement plugin style package design for modular pycep plugin functionality.
+-   Add package_questions output plugin.
+-   Add 4 new words to default word_list.txt.
+-   Change render plugin name to parser.
+-   All plugins moved to dedicated python packages.
+-   Improve the Yaml out of answerkey data
