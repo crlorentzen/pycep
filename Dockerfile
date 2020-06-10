@@ -1,12 +1,12 @@
-FROM python:3.7-alpine AS pycep
+FROM python:3.8-alpine AS pycep
 
 WORKDIR /opt/pycep
 
 COPY . /tmp/pycep
 
-RUN apk update \
-   && apk upgrade \
-   &&  apk add --no-cache -t build_req \
+RUN apk update
+RUN apk upgrade
+RUN  apk add --no-cache -t build_req \
         gcc \
         g++ \
    && adduser -DH -s /sbin/nologin pycep \
