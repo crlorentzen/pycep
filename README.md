@@ -8,10 +8,33 @@ The main goal of this project is to bring basic content checking features in a p
 
 ### Install from source
 
-    git clone https://github.com/SimSpace/pycep/
-    cd pycep 
-    pip install -r requirements.txt
+It's recommended to setup a dedicated virtual environment to install pycep. If you have a setup pip you can skip to the
+pip install.
+
+#### Create virtualenv**
+1. install virtualenv
+
+        pip3 install virtualenv
+
+2.   Create dedicated pycep virtualenv
+
+         virtualenv -p /usr/bin/python3.8 pycep-venv
+
+3.  Activate virtual environment
+
+        source pycep-venv/bin/activate
+
+#### Python install
+
+    git clone https://github.com/SimSpace/pycep/ 
+    cd pycep pip install -r requirements.txt
     python setup.py install
+
+#### Pip install
+
+    git clone https://github.com/SimSpace/pycep/ 
+    cd pycep pip install -r requirements.txt 
+    pip install .
 
 ## Basic pycep CLI usage
 

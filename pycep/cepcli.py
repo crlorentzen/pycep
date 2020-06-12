@@ -1,6 +1,7 @@
 """The pycep cli python package."""
 # coding=utf-8
 import click
+import json
 import ujson
 from logging import DEBUG, ERROR, basicConfig, error
 from pycep import __version__
@@ -68,11 +69,11 @@ def pycep_cli(input_file, plugin, file_type, output, word_list, input_directory,
     """Pycep Command line interface."""
     # Parse input archive and return dict type variable.
     if input_file:
-        input_data = ujson.loads(open_input_file(input_file, file_type))
+        try:
+            input_data = ujson.loads(open_input_file(input_file, file_type))
+        except:
+            input_data = json.loads(open_input_file(input_file, file_type))
     else:
-        error(
-              "No json type variable loaded from input_file archive. "
-              "Check the package export archive for a proper package_export.json")
         input_data = None
     # Pass input data to plugins
     load_plugins(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id)

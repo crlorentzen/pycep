@@ -77,6 +77,7 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                 if isinstance(tasks, list):
                     for task in tasks:
                         full_file_name = task
+                        full_file_name = full_file_name.replace('"', "'")
                         task_id = str(uuid4())
                         task_id_string = f"task-{task_id}"
                         task_dict = \
@@ -166,7 +167,7 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                 elif line_chunk[:-2] == "**":
                     task_list_items.append(build_node_package([build_text_line(line_data[2:-2])], "bold"))
                 elif line_chunk[:-2] == "# ":
-                    print("Title ")
+                    info("Processing task Title ")
                 elif line_chunk[:-2] == "![":
                     image_data = build_node_package([build_text_line("")], "image-block")
                     image_data["data"] = {"imageData": line_data[10:-1]}
@@ -178,7 +179,6 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                     task_list_items.append(build_node_package(star_list, "unordered-list"))
                     star_list = []
                 elif len(line_data) > 0:
-                    # TODO add regex parser for text data that contains bold/italic/code font formats
                     task_list_items.append(build_node_package([build_text_line(line_data)], "paragraph"))
             if len(code_list) > 0:
                 task_list_items.append(build_node_package(code_list, "code-block"))
@@ -255,6 +255,8 @@ def strip_unsafe_file_names(string_data: str) -> str:
             new_string += "%47"
         elif character == "?":
             new_string += "%63"
+        elif character == "&":
+            new_string += "%38"
         else:
             new_string += character
 
@@ -351,6 +353,9 @@ class PackageExport:
         description = ""
         if self.description:
             description = self.description
+        content_mods = "contentModules:\n"
+        for item in self.content_modules:
+            content_mods += f"  - \"{item}\"\n"
         yml_out = f"{ENROLLMENT_TYPE}: '{self.enrollment_type}'\n" \
                   f"{STAT_S}: '{self.status}'\n" \
                   f"owner: '{self.owner}'\n" \
@@ -363,7 +368,7 @@ class PackageExport:
                   f"{RANDOM_QUESTIONS}: {self.randomized_questions}\n" \
                   f"resources:  {self.resources}\n" \
                   f"{LEADERBOARD}: {str(self.leaderboard_enabled)}\n" \
-                  f"{CONTENT_MODS}:  {self.content_modules}\n" \
+                  f"{content_mods}" \
                   f"difficulty:  '{self.difficulty}'\n" \
                   f"description:  '{description}'\n" \
                   f"{REVEAL_ANSWERS}: {self.reveal_answers}\n" \
@@ -398,20 +403,30 @@ class AnswerKey:
                 elif answers["correct"] is False:
                     incorrect_list.append(answers['value'])
             if correct_list:
-                answer_data += f"  correct: {correct_list}\n"
+                answer_data += f"  correct:\n"
+                for item in correct_list:
+                    safe_item = item.replace('"', "'")
+                    safe_item = safe_item.replace("\\", "\\\\")
+                    answer_data += f"  - \"{safe_item}\" \n"
+
             if incorrect_list:
-                answer_data += f"  incorrect: {incorrect_list}\n"
+                answer_data += f"  incorrect:\n"
+                for item in incorrect_list:
+                    safe_item = item.replace('"', "'")
+                    safe_item = safe_item.replace("\\", "\\\\")
+                    answer_data += f"  - \"{safe_item}\" \n"
             yml_out += answer_data
             hint_number = 0
-            hints_data = ""
-            hints_data += f"hints:\n"
-            for hints in self.question["hints"]:
-                hint_number += 1
-                hints_data += f"  {str(hint_number)}: \n    cost: {hints['pointsDeduction']}\n"
-                hint_text = hints['text'].replace('\n', "\n       ")
-                hint_text = hint_text.replace('"', "\\\"")
-                hints_data += f"    message: \"{hint_text}\" \n"
-            yml_out += hints_data
+            if "hints" in self.question:
+                hints_data = ""
+                hints_data += f"hints:\n"
+                for hints in self.question["hints"]:
+                    hint_number += 1
+                    hints_data += f"  {str(hint_number)}: \n    cost: {hints['pointsDeduction']}\n"
+                    hint_text = hints['text'].replace('\n', "\n       ")
+                    hint_text = hint_text.replace('"', "\\\"")
+                    hints_data += f"    message: \"{hint_text}\" \n"
+                yml_out += hints_data
         tite_string = self.title.replace('"', "\\\"")
         yml_out += f"title: \"{tite_string}\" \n"
         if len(self.vm_keys) > 0:
@@ -487,6 +502,9 @@ class ModuleExportContentModule:
             if len(value_list) > 1:
                 task_list.append(value_list)
                 value_list = []
-        yml_out += f"tasks:  {task_list}"
-
+        yml_out += f"tasks:\n"
+        for item in task_list:
+            safe_item = item.replace('"', "'")
+            safe_item = safe_item.replace("\\", "\\\\")
+            yml_out += f"  - \"{safe_item}\" \n"
         return yml_out

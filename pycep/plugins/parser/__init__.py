@@ -107,6 +107,10 @@ def render_list_item(task_line: dict, heading_level: str):
     raw_list_data = ""
     for node in task_line:
         raw_list_data += f"{heading_level}{node[TXT]}"
+        if "## " in raw_list_data[2:]:
+            test_data = raw_list_data[2:].replace("## ", "__")
+            test_data = test_data.replace("##", "__")
+            raw_list_data = f"{heading_level}{test_data}"
     if len(heading_level) == len(raw_list_data):
         return None
     return raw_list_data
@@ -178,6 +182,11 @@ def render_task(task_dict: dict):
                         raw_task_data += raw_heading_data
                 elif 'heading-one' in task_line[TYPE_STRING]:
                     raw_heading_data = render_list_item(task_line[NODES], '## ')
+                    if raw_heading_data:
+                        raw_task_data += raw_heading_data
+                elif 'underline' in task_line[TYPE_STRING]:
+                    raw_heading_data = render_list_item(task_line[NODES], '__')
+                    raw_heading_data += "__"
                     if raw_heading_data:
                         raw_task_data += raw_heading_data
                 elif 'bold' in task_line[TYPE_STRING]:
