@@ -291,36 +291,43 @@ def parser(raw_data: dict,  plugin, file_type, output: str, word_list, input_dir
         answer_data = package_export_content_modules[values][EXPORT_TASKS]
         for package in raw_task_data:
             package_name_value = strip_unsafe_file_names(package)
-            write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{YAML_EXT}",
+            package_path = f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}"
+            try:
+                mkdir(package_path)
+            except FileExistsError:
+                rmtree(package_path)
+                mkdir(package_path)
+            write_to_file(f"{package_path}{package_name_value}{YAML_EXT}",
                           ModuleExportContentModule(package_export_content_modules[values][EXPORT_MOD_STRING]).to_yml())
             for task_item in raw_task_data[package]:
                 task_answer_key = yml_format_str(answer_data, task_item)
                 try:
                     task_name_string = strip_unsafe_file_names(task_item)
-                    write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}{task_name_string}{MD_EXT}", (h_one_format(task_item) + raw_task_data[package][task_item]))
+                    write_to_file(f"{package_path}{TASKS}{DIR_CHARACTER}{task_name_string}{MD_EXT}",
+                                  (h_one_format(task_item) + raw_task_data[package][task_item]))
                     if task_answer_key:
-                        write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}"
-                                      f"{task_name_string}{YAML_EXT}", task_answer_key)
+                        write_to_file(f"{package_path}"
+                                      f"{TASKS}{DIR_CHARACTER}{task_name_string}{YAML_EXT}", task_answer_key)
                 except FileNotFoundError:
                     try:
-                        mkdir(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}")
+                        mkdir(f"{package_path}{TASKS}{DIR_CHARACTER}")
                         task_name_string_value = strip_unsafe_file_names(task_item)
                         write_to_file(
-                            f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}{task_name_string_value}"
+                            f"{package_path}{TASKS}{DIR_CHARACTER}{task_name_string_value}"
                             f"{MD_EXT}", (h_one_format(task_item) + raw_task_data[package][task_item]))
                         if task_answer_key:
-                            write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}"
-                                          f"{task_name_string_value}{YAML_EXT}",
+                            write_to_file(f"{package_path}"
+                                          f"{TASKS}{DIR_CHARACTER}{task_name_string_value}{YAML_EXT}",
                                           task_answer_key)
                     except FileExistsError:
                         try:
                             task_name_string_value = strip_unsafe_file_names(task_item)
                             write_to_file(
-                                f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}{task_name_string_value}"
+                                f"{package_path}{TASKS}{DIR_CHARACTER}{task_name_string_value}"
                                 f"{MD_EXT}", (h_one_format(task_item) + raw_task_data[package][task_item]))
                             if task_answer_key:
-                                write_to_file(f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}"
-                                              f"{task_name_string_value}{YAML_EXT}",
+                                write_to_file(f"{package_path}"
+                                              f"{TASKS}{DIR_CHARACTER}{task_name_string_value}{YAML_EXT}",
                                               (str(task_answer_key)))
                         except FileExistsError:
                             error(f"{package} {task_item} duplicate task names found.")
