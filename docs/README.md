@@ -24,10 +24,10 @@
     docker build . -t pycep 
 
 #### pycep Docker image size 
-The current docker image size is around 19MB
+The current docker image size is around 113MB
 
     REPOSITORY   TAG     IMAGE ID       CREATED         SIZE
-    pycep        latest  35f30b3d4cb8   2 minutes ago   119MB
+    pycep        latest  35f30b3d4cb8   2 minutes ago   113MB
 
 
 ### Run basic command with Docker 

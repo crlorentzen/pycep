@@ -39,32 +39,34 @@ def build_node_package(nodes_data: list, data_type: str):
 
 def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
     package_dir = input_dir
-    dir_paths = package_dir.split("/")
+    dir_paths = package_dir.split(f"{DIR_CHARACTER}")
     total_length = len(dir_paths)
     package_name = dir_paths[(total_length - 1)]
     input_package_export_name = package_export_name
     tar_data = tarfile.open(f"{input_package_export_name}", "w:gz")
-    package_config_path = f"{input_dir}/{package_name}.yml"
+    package_config_path = f"{input_dir}{DIR_CHARACTER}{package_name}.yml"
     package_config_yaml = YamlInfo(package_config_path, "none", "none").get()
     build_json = {}
     build_json[PACKAGE_STR] = {}
     build_json[PACKAGE_STR] = package_config_yaml
     build_json['packageKey'] = str(uuid4())
+    package_path = f"{export_dir}{DIR_CHARACTER}{package_name}"
     try:
-        mkdir(f"{export_dir}/{package_name}")
+        mkdir(f"{package_path}")
     except FileNotFoundError:
         mkdir(f"{export_dir}")
-        mkdir(f"{export_dir}/{package_name}")
+        mkdir(f"{package_path}")
     except FileExistsError:
-        rmtree(f"{export_dir}/{package_name}")
-        mkdir(f"{export_dir}/{package_name}")
-    mkdir(f"{export_dir}/{package_name}/content-modules")
+        rmtree(f"{package_path}")
+        mkdir(f"{package_path}")
+    mkdir(f"{package_path}{DIR_CHARACTER}content-modules")
     tar_data.close()
     file_list = package_config_yaml["contentModules"]
     package_config_yaml[CONTENT_MODS] = []
     build_json[CONTENT_MOD_STRING] = {}
+    tasks_path = f"{DIR_CHARACTER}{TASKS}{DIR_CHARACTER}"
     for file_name in file_list:
-        mod_config_path = f"{input_dir}/{file_name}{YAML_EXT}"
+        mod_config_path = f"{input_dir}{DIR_CHARACTER}{file_name}{DIR_CHARACTER}{file_name}{YAML_EXT}"
         module_config_yaml = YamlInfo(mod_config_path, "none", "none").get()
         task_info_dict = {}
         task_task_exports = {}
@@ -80,23 +82,24 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                         task_id = str(uuid4())
                         task_id_string = f"task-{task_id}"
                         task_dict = \
-                            YamlInfo(f"{input_dir}/{file_name}/{full_file_name}{YAML_EXT}", "none", "none").get()
+                            YamlInfo(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{YAML_EXT}", "none", "none").get()
                         sub_task_list.append({"key": task_id_string, "val": task_dict})
                         task_task_exports[task_id_string] = task_dict
-                        with open(f"{input_dir}/{file_name}/{full_file_name}{MD_EXT}", 'r') as file_raw:
+                        with open(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{MD_EXT}", 'r') as file_raw:
                             task_info_dict[task_id_string] = file_raw.read()
                     task_task_list.append(sub_task_list)
                 else:
                     full_file_name = tasks
                     task_id = str(uuid4())
                     task_id_string = f"task-{task_id}"
-                    task_dict = YamlInfo(f"{input_dir}/{file_name}/{full_file_name}{YAML_EXT}", "none", "none").get()
+                    task_dict = YamlInfo(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{YAML_EXT}", "none", "none").get()
                     if "vmKeys" not in task_dict:
                         task_dict["vmKeys"] = []
                     else:
                         vm_list = []
                         for vm in task_dict["vmKeys"]:
-                            vm_list.append({'key': {'repetitionGroup': task_dict["vmKeys"][vm]['ID'], 'index': task_dict["vmKeys"][vm]['index']}, 'val': vm})
+                            vm_list.append({'key': {'repetitionGroup': task_dict["vmKeys"][vm]['ID'],
+                                                    'index': task_dict["vmKeys"][vm]['index']}, 'val': vm})
                         task_dict["vmKeys"] = vm_list
                     if "answers" in task_dict:
                         question_list = task_dict["answers"]
@@ -113,7 +116,8 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                         hints = []
                         if "hints" in task_dict:
                             for hint in task_dict["hints"]:
-                                hints.append({'text': task_dict["hints"][hint]["message"], 'pointsDeduction': task_dict["hints"][hint]["cost"]})
+                                hints.append({'text': task_dict["hints"][hint]["message"],
+                                              'pointsDeduction': task_dict["hints"][hint]["cost"]})
                             del task_dict["hints"]
                         tasks_dict["questions"]["choices"] = choices
                         tasks_dict["questions"]["hints"] = hints
@@ -130,7 +134,7 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
 
                     task_task_list.append([{"key": task_id_string, "val": task_dict}])
                     task_task_exports[task_id_string] = task_dict
-                    with open(f"{input_dir}/{file_name}/{full_file_name}{MD_EXT}", 'r') as file_raw:
+                    with open(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{MD_EXT}", 'r') as file_raw:
                         task_info_dict[task_id_string] = file_raw.read()
         module_id = str(uuid4())
         module_id_string = f"{module_id}"
@@ -166,7 +170,7 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                 elif line_chunk[:-2] == "**":
                     task_list_items.append(build_node_package([build_text_line(line_data[2:-2])], "bold"))
                 elif line_chunk[:-2] == "# ":
-                    print("Title ")
+                    info("Processing task Title ")
                 elif line_chunk[:-2] == "![":
                     image_data = build_node_package([build_text_line("")], "image-block")
                     image_data["data"] = {"imageData": line_data[10:-1]}
@@ -178,7 +182,6 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                     task_list_items.append(build_node_package(star_list, "unordered-list"))
                     star_list = []
                 elif len(line_data) > 0:
-                    # TODO add regex parser for text data that contains bold/italic/code font formats
                     task_list_items.append(build_node_package([build_text_line(line_data)], "paragraph"))
             if len(code_list) > 0:
                 task_list_items.append(build_node_package(code_list, "code-block"))
@@ -197,15 +200,15 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
             if "question" in task_task_exports[tasks]:
                 questions_descriptions[tasks] = question_data[tasks]
         build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = questions_descriptions
-        with open(f'data/module-.tar.gz', 'rb') as blank_module_file:
+        with open(f'data{DIR_CHARACTER}module-.tar.gz', 'rb') as blank_module_file:
             module_data = blank_module_file.read()
-        with open(f'{export_dir}/{package_name}/content-modules/{module_id_string}.tar.gz', 'wb') as module_file:
+        with open(f'{package_path}{DIR_CHARACTER}content-modules{DIR_CHARACTER}{module_id_string}.tar.gz', 'wb') as module_file:
             module_file.write(module_data)
-    with open(f'{export_dir}/{package_name}/export.version', 'w') as export_version_file:
+    with open(f'{package_path}{DIR_CHARACTER}export.version', 'w') as export_version_file:
         export_version_file.write("9")
-    with open(f'{export_dir}/{package_name}/package_export{JS_EXT}', 'w') as package_json:
+    with open(f'{package_path}{DIR_CHARACTER}package_export{JS_EXT}', 'w') as package_json:
         package_json.write(dumps(build_json))
-    compile_export_package(f"{export_dir}/{package_name}", input_package_export_name)
+    compile_export_package(f"{package_path}", input_package_export_name)
 
 
 def compile_export_package(compile_dict: str, package_export_name: str):
@@ -215,10 +218,10 @@ def compile_export_package(compile_dict: str, package_export_name: str):
     chdir(compile_dict)
     for (dir_path, dirs, files) in walk(compile_dict):
         for filename in files:
-            if dir_path == f"{compile_dict}/content-modules":
+            if dir_path == f"{compile_dict}{DIR_CHARACTER}content-modules":
                 chdir(compile_dict)
                 try:
-                    tar_data.add(f"content-modules/")
+                    tar_data.add(f"content-modules{DIR_CHARACTER}")
                 except FileExistsError:
                     pass
             else:
@@ -251,28 +254,18 @@ def strip_unsafe_file_names(string_data: str) -> str:
     for character in string_data:
         if character == ":":
             new_string += "%58"
-        elif character == "/":
+        elif character == "{DIR_CHARACTER}":
             new_string += "%47"
         elif character == "?":
             new_string += "%63"
+        elif character == "&":
+            new_string += "%38"
+        elif character == '"':
+            new_string += "'"
         else:
             new_string += character
 
     return new_string
-
-
-def format_table(dict_value):
-    package_data = ""
-    package_spacer = ""
-    package_headers = ""
-    for data_value, value in dict_value.items():
-        if value and data_value != 'questions':
-            package_data += f"{data_value} |"
-            package_spacer += ":---------- |"
-            package_headers += f"{value} |"
-
-    package_data += f"\n{package_spacer}\n{package_headers}"
-    return package_data
 
 
 def h_one_format(heading_data):
@@ -322,7 +315,7 @@ class PackageExport:
             self.description = get_value('description', raw_data)['description']
 
     def to_dict(self):
-        """Return dictionary object type for to/from dict formatting."""
+        """Return dictionary object type for to{DIR_CHARACTER}from dict formatting."""
         data = {
             ENROLLMENT_TYPE: self.enrollment_type,
             STAT_S: self.status,
@@ -341,16 +334,18 @@ class PackageExport:
             EVENT_TIME: self.event_time_limit,
             RANDOM_QUESTIONS: self.randomized_questions,
             LEADERBOARD: self.leaderboard_enabled
-
         }
         return data
 
     def to_yml(self):
-        """Return dictionary object type for to/from
+        """Return dictionary object type for to{DIR_CHARACTER}from
          dict formatting."""
         description = ""
         if self.description:
             description = self.description
+        content_mods = "contentModules:\n"
+        for item in self.content_modules:
+            content_mods += f"  - \"{item}\"\n"
         yml_out = f"{ENROLLMENT_TYPE}: '{self.enrollment_type}'\n" \
                   f"{STAT_S}: '{self.status}'\n" \
                   f"owner: '{self.owner}'\n" \
@@ -363,9 +358,9 @@ class PackageExport:
                   f"{RANDOM_QUESTIONS}: {self.randomized_questions}\n" \
                   f"resources:  {self.resources}\n" \
                   f"{LEADERBOARD}: {str(self.leaderboard_enabled)}\n" \
-                  f"{CONTENT_MODS}:  {self.content_modules}\n" \
+                  f"{content_mods}" \
                   f"difficulty:  '{self.difficulty}'\n" \
-                  f"description:  '{description}'\n" \
+                  f"description:  \"{description}\"\n" \
                   f"{REVEAL_ANSWERS}: {self.reveal_answers}\n" \
                   f"{EVENT_TIME}: {str(self.event_time_limit)}\n"
         return yml_out
@@ -382,7 +377,7 @@ class AnswerKey:
         self.vm_keys = get_value("vmKeys", raw_data)["vmKeys"]
 
     def to_yml(self):
-        """Return dictionary object type for to/from
+        """Return dictionary object type for to{DIR_CHARACTER}from
          dict formatting."""
         yml_out = ""
         if self.question:
@@ -398,20 +393,30 @@ class AnswerKey:
                 elif answers["correct"] is False:
                     incorrect_list.append(answers['value'])
             if correct_list:
-                answer_data += f"  correct: {correct_list}\n"
+                answer_data += f"  correct:\n"
+                for item in correct_list:
+                    safe_item = item.replace('"', "'")
+                    safe_item = safe_item.replace("\\", "\\\\")
+                    answer_data += f"  - \"{safe_item}\" \n"
+
             if incorrect_list:
-                answer_data += f"  incorrect: {incorrect_list}\n"
+                answer_data += f"  incorrect:\n"
+                for item in incorrect_list:
+                    safe_item = item.replace('"', "'")
+                    safe_item = safe_item.replace("\\", "\\\\")
+                    answer_data += f"  - \"{safe_item}\" \n"
             yml_out += answer_data
             hint_number = 0
-            hints_data = ""
-            hints_data += f"hints:\n"
-            for hints in self.question["hints"]:
-                hint_number += 1
-                hints_data += f"  {str(hint_number)}: \n    cost: {hints['pointsDeduction']}\n"
-                hint_text = hints['text'].replace('\n', "\n       ")
-                hint_text = hint_text.replace('"', "\\\"")
-                hints_data += f"    message: \"{hint_text}\" \n"
-            yml_out += hints_data
+            if "hints" in self.question:
+                hints_data = ""
+                hints_data += f"hints:\n"
+                for hints in self.question["hints"]:
+                    hint_number += 1
+                    hints_data += f"  {str(hint_number)}: \n    cost: {hints['pointsDeduction']}\n"
+                    hint_text = hints['text'].replace('\n', "\n       ")
+                    hint_text = hint_text.replace('"', "\\\"")
+                    hints_data += f"    message: \"{hint_text}\" \n"
+                yml_out += hints_data
         tite_string = self.title.replace('"', "\\\"")
         yml_out += f"title: \"{tite_string}\" \n"
         if len(self.vm_keys) > 0:
@@ -445,7 +450,7 @@ class ModuleExportContentModule:
         self.description = get_value('description', raw_data)['description']
 
     def to_dict(self):
-        """Return dictionary object type for to/from
+        """Return dictionary object type for to{DIR_CHARACTER}from
          dict formatting."""
         data = {
             STAT_S: self.status,
@@ -461,10 +466,10 @@ class ModuleExportContentModule:
         return data
 
     def to_yml(self):
-        """Return dictionary object type for to/from
+        """Return dictionary object type for to{DIR_CHARACTER}from
          dict formatting."""
         yml_out = ""
-        yml_out += f"description: '{str(self.description)}'\n"
+        yml_out += f"description: \"{str(self.description)}\"\n"
         yml_out += f"name: '{self.name_value}'\n"
         if len(self.clone_source) > 0:
             yml_out += f"cloneSource: {self.clone_source}\n"
@@ -487,6 +492,12 @@ class ModuleExportContentModule:
             if len(value_list) > 1:
                 task_list.append(value_list)
                 value_list = []
-        yml_out += f"tasks:  {task_list}"
-
+        yml_out += f"tasks:\n"
+        for item in task_list:
+            if isinstance(item, list):
+                yml_out += f"  - {item} \n"
+            else:
+                safe_item = item.replace('"', "'")
+                safe_item = safe_item.replace("\\", "\\\\")
+                yml_out += f"  - \"{safe_item}\" \n"
         return yml_out
