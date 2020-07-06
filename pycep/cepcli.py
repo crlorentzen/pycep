@@ -76,7 +76,7 @@ def pycep_cli(input_file, plugin, file_type, output, word_list, input_directory,
     else:
         input_data = None
     # Pass input data to plugins
-    load_plugins(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id)
+    load_plugins(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id, input_file)
 
 
 if __name__ == '__main__':

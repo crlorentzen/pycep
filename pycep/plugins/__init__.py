@@ -6,7 +6,7 @@ import importlib
 from logging import info
 
 
-def load_plugins(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id):
+def load_plugins(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id, input_file):
     """Process CLI input into plugin set variable."""
     modules = glob.glob(os.path.dirname(__file__) + "/*")
     blacklist = {'__pycache__'}
@@ -20,4 +20,12 @@ def load_plugins(input_data, plugin, file_type, output, word_list, input_directo
             if plugin == ("--help" or "help"):
                 module.chelp()
             if module_name == plugin:
-                module.load(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id)
+                module.load(input_data,
+                            plugin,
+                            file_type,
+                            output,
+                            word_list,
+                            input_directory,
+                            export_dir,
+                            owner_id,
+                            input_file)
