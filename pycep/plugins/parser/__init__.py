@@ -9,9 +9,9 @@ from pycep.model import *
 from pycep.content_strings import *
 
 
-def load(raw_data: dict,  plugin, file_type, output: str, word_list, input_directory, export_dir, owner_id):
+def load(raw_data: dict,  plugin, file_type, output: str, word_list, input_directory, export_dir, owner_id, input_file):
     """Process CLI input with parser plugin function."""
-    return parser(raw_data,  plugin, file_type, output, word_list, input_directory, export_dir, owner_id)
+    return parser(raw_data,  plugin, file_type, output, word_list, input_directory, export_dir, owner_id, input_file)
 
 
 def chelp():
@@ -151,7 +151,7 @@ def render_task(task_dict: dict):
                     if "marks" in task_line[NODES][0] and len(task_line[NODES][0][M_STR]) > 0:
                         if "bold" == task_line[NODES][0][M_STR][0][TYPE_STRING]:
                             if len(task_line[NODES][0][TXT]) > 0:
-                                raw_task_data += f"**{strip_end_space(task_line[NODES][0][TXT])[:-1]}**"
+                                raw_task_data += f"**{strip_end_space(task_line[NODES][0][TXT])}**"
                         elif 'code-mark' == task_line[NODES][0][M_STR][0][TYPE_STRING]:
                             raw_task_data += f"`{strip_end_space(task_line[NODES][0][TXT])}`"
                         elif 'strikethrough' == task_line[NODES][0][M_STR][0][TYPE_STRING]:
@@ -216,7 +216,6 @@ def render_task(task_dict: dict):
                     error(f"Data type {task_line[TYPE_STRING]} unknown")
                     raw_task_data += " Data Type Unknown\n"
             raw_task_data += NEW_LINE
-
     return raw_task_data
 
 
@@ -265,29 +264,39 @@ def get_package_data(package_export_content_modules):
     return package_list
 
 
-def yml_format_str(answer_data, task_item):
+def yml_format_str(answer_data, task_item, attachment_data, input_file, output):
     task_answer_key = None
     for title in answer_data.items():
-        if title[1]['title'] is task_item:
-            task_answer_key = AnswerKey(raw_data=title[1]).to_yml()
+        search_title = title[1]['title']
+        if search_title is task_item:
+            task_answer_key = AnswerKey(raw_data=title[1], attachment_data=attachment_data, task=title[0]).to_yml()
             task_answer_key = task_answer_key.replace("True", "true")
             task_answer_key = task_answer_key.replace("False", "false")
-
     return task_answer_key
 
 
-def parser(raw_data: dict,  plugin, file_type, output: str, word_list, input_directory, export_dir, owner_id):
+def parser(raw_data: dict,
+           plugin,
+           file_type,
+           output: str,
+           word_list,
+           input_directory,
+           export_dir,
+           owner_id,
+           input_file):
     """Output package to md format."""
     package_export_content_modules = get_value(CONTENT_MOD_STRING, raw_data)[CONTENT_MOD_STRING]
     package_data = get_package_data(package_export_content_modules)
     main_package_data = package_export_package_info(raw_data)
     file_name = f"{strip_unsafe_file_names(main_package_data[N_STR].strip(' '))}{YAML_EXT}"
-    raw_data[PACKAGE_STR]['contentModules'] = package_data
+    raw_data[PACKAGE_STR][CONTENT_MODS] = package_data
     package_yml = PackageExport(raw_data[PACKAGE_STR]).to_yml()
     write_to_file(f"{output}{DIR_CHARACTER}{file_name}", package_yml)
+    extract_tar_data(input_file, output)
     for values in package_export_content_modules:
         raw_task_data = get_task_data_listed(package_export_content_modules, values)
         info("Processing tasks with compile plugin now!")
+        attachment_data = package_export_content_modules[values][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS]
         answer_data = package_export_content_modules[values][EXPORT_TASKS]
         for package in raw_task_data:
             package_name_value = strip_unsafe_file_names(package)
@@ -298,22 +307,23 @@ def parser(raw_data: dict,  plugin, file_type, output: str, word_list, input_dir
                 rmtree(package_path)
                 mkdir(package_path)
             write_to_file(f"{package_path}{package_name_value}{YAML_EXT}",
-                          ModuleExportContentModule(package_export_content_modules[values][EXPORT_MOD_STRING]).to_yml())
+                          ModuleExportContentModule(package_export_content_modules[values]).to_yml())
             for task_item in raw_task_data[package]:
-                task_answer_key = yml_format_str(answer_data, task_item)
+                task_answer_key = yml_format_str(answer_data, task_item, attachment_data, input_file, output)
+                task_path = f"{package_path}{TASKS}{DIR_CHARACTER}"
                 try:
                     task_name_string = strip_unsafe_file_names(task_item)
-                    write_to_file(f"{package_path}{TASKS}{DIR_CHARACTER}{task_name_string}{MD_EXT}",
+                    write_to_file(f"{task_path}{task_name_string}{MD_EXT}",
                                   (h_one_format(task_item) + raw_task_data[package][task_item]))
                     if task_answer_key:
                         write_to_file(f"{package_path}"
                                       f"{TASKS}{DIR_CHARACTER}{task_name_string}{YAML_EXT}", task_answer_key)
                 except FileNotFoundError:
                     try:
-                        mkdir(f"{package_path}{TASKS}{DIR_CHARACTER}")
+                        mkdir(f"{task_path}")
                         task_name_string_value = strip_unsafe_file_names(task_item)
                         write_to_file(
-                            f"{package_path}{TASKS}{DIR_CHARACTER}{task_name_string_value}"
+                            f"{task_path}{task_name_string_value}"
                             f"{MD_EXT}", (h_one_format(task_item) + raw_task_data[package][task_item]))
                         if task_answer_key:
                             write_to_file(f"{package_path}"
@@ -323,14 +333,14 @@ def parser(raw_data: dict,  plugin, file_type, output: str, word_list, input_dir
                         try:
                             task_name_string_value = strip_unsafe_file_names(task_item)
                             write_to_file(
-                                f"{package_path}{TASKS}{DIR_CHARACTER}{task_name_string_value}"
+                                f"{task_path}{task_name_string_value}"
                                 f"{MD_EXT}", (h_one_format(task_item) + raw_task_data[package][task_item]))
                             if task_answer_key:
                                 write_to_file(f"{package_path}"
                                               f"{TASKS}{DIR_CHARACTER}{task_name_string_value}{YAML_EXT}",
                                               (str(task_answer_key)))
                         except FileExistsError:
-                            error(f"{package} {task_item} duplicate task names found.")
+                            error(f"{package}{task_item} duplicate task names found.")
                         except:
                             error("Unknown error not parsing properly")
                     except:

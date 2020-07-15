@@ -2,10 +2,11 @@
 # coding=utf-8
 import platform
 import tarfile
-from shutil import rmtree
+from glob import glob
+from shutil import rmtree, move, Error
 from uuid import uuid4
 from json import dumps
-from os import mkdir, chdir, walk, getcwd
+from os import mkdir, chdir, walk, getcwd, remove
 from logging import error, info
 from yaml_info.yamlinfo import YamlInfo
 from pycep.content_strings import *
@@ -15,12 +16,20 @@ SYSTEM_PLATFORM = platform.system()
 if SYSTEM_PLATFORM == "Windows":
     info("Windows Detected")
     DIR_CHARACTER = "\\"
-elif SYSTEM_PLATFORM != "Linux":
+elif SYSTEM_PLATFORM != ("Linux" or "Darwin"):
     error(f"Unsupported System type detected")
 NEW_LINE = "\n"
 
 
 def build_text_line(line_data):
+    if "__" in line_data:
+        line_data.replace("__", "##")
+    if "**" in line_data:
+        line_data.replace("**", "")
+    if "*" in line_data:
+        line_data.replace("*", "")
+    if "\\\\" in line_data:
+        line_data.replace("\\\\", "\\")
     data_nodes = {"marks": [],
                   "object": "text",
                   "text": line_data
@@ -37,13 +46,25 @@ def build_node_package(nodes_data: list, data_type: str):
     return data_node
 
 
-def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
+def path_builder(build_path, delete):
+    try:
+        mkdir(build_path)
+    except FileExistsError:
+        if delete:
+            rmtree(build_path)
+            mkdir(build_path)
+    except FileNotFoundError:
+        if delete:
+            rmtree(f"{build_path}")
+        mkdir(f"{build_path}")
+
+
+def compile_package_data(package_export_name, input_dir, export_dir, owner_id, input_file):
     package_dir = input_dir
     dir_paths = package_dir.split(f"{DIR_CHARACTER}")
     total_length = len(dir_paths)
     package_name = dir_paths[(total_length - 1)]
     input_package_export_name = package_export_name
-    tar_data = tarfile.open(f"{input_package_export_name}", "w:gz")
     package_config_path = f"{input_dir}{DIR_CHARACTER}{package_name}.yml"
     package_config_yaml = YamlInfo(package_config_path, "none", "none").get()
     build_json = {}
@@ -60,20 +81,25 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
         rmtree(f"{package_path}")
         mkdir(f"{package_path}")
     mkdir(f"{package_path}{DIR_CHARACTER}content-modules")
-    tar_data.close()
     file_list = package_config_yaml["contentModules"]
     package_config_yaml[CONTENT_MODS] = []
     build_json[CONTENT_MOD_STRING] = {}
     tasks_path = f"{DIR_CHARACTER}{TASKS}{DIR_CHARACTER}"
     for file_name in file_list:
+        task_task_exports = {}
+        attachment_data_dict = {}
         mod_config_path = f"{input_dir}{DIR_CHARACTER}{file_name}{DIR_CHARACTER}{file_name}{YAML_EXT}"
         module_config_yaml = YamlInfo(mod_config_path, "none", "none").get()
         task_info_dict = {}
-        task_task_exports = {}
         question_data = {}
         questions_descriptions = {}
+        task_task_list = []
+        module_id = str(uuid4())
+        module_id_string = f"{module_id}"
+        content_module_path = f"{package_path}{DIR_CHARACTER}content-modules"
+        module_path = f"{content_module_path}{DIR_CHARACTER}module-{module_id_string}"
+        attachment_build_path = f"{module_path}{DIR_CHARACTER}attachments{DIR_CHARACTER}"
         if "tasks" in module_config_yaml:
-            task_task_list = []
             for tasks in module_config_yaml["tasks"]:
                 sub_task_list = []
                 if isinstance(tasks, list):
@@ -81,18 +107,27 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                         full_file_name = task
                         task_id = str(uuid4())
                         task_id_string = f"task-{task_id}"
+
                         task_dict = \
-                            YamlInfo(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{YAML_EXT}", "none", "none").get()
-                        sub_task_list.append({"key": task_id_string, "val": task_dict})
-                        task_task_exports[task_id_string] = task_dict
-                        with open(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{MD_EXT}", 'r') as file_raw:
+                            YamlInfo(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{YAML_EXT}",
+                                     "none", "none").get()
+                        del task_dict["attachments"]
+                        if "question" in task_dict:
+                            custom_task_dict = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"], "question": task_dict["question"]}
+                        else:
+                            custom_task_dict = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"]}
+                        sub_task_list.append({"key": task_id_string, "val": custom_task_dict})
+                        task_task_exports[task_id_string] = custom_task_dict
+                        with open(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{MD_EXT}", 'r') \
+                                as file_raw:
                             task_info_dict[task_id_string] = file_raw.read()
                     task_task_list.append(sub_task_list)
                 else:
                     full_file_name = tasks
                     task_id = str(uuid4())
                     task_id_string = f"task-{task_id}"
-                    task_dict = YamlInfo(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{YAML_EXT}", "none", "none").get()
+                    task_dict = YamlInfo(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{YAML_EXT}",
+                                         "none", "none").get()
                     if "vmKeys" not in task_dict:
                         task_dict["vmKeys"] = []
                     else:
@@ -115,10 +150,11 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                                 choices.append({'value': wrong, 'correct': False})
                         hints = []
                         if "hints" in task_dict:
-                            for hint in task_dict["hints"]:
-                                hints.append({'text': task_dict["hints"][hint]["message"],
-                                              'pointsDeduction': task_dict["hints"][hint]["cost"]})
-                            del task_dict["hints"]
+                            if task_dict["hints"]:
+                                for hint in task_dict["hints"]:
+                                    hints.append({'text': task_dict["hints"][hint]["message"],
+                                                  'pointsDeduction': task_dict["hints"][hint]["cost"]})
+                                del task_dict["hints"]
                         tasks_dict["questions"]["choices"] = choices
                         tasks_dict["questions"]["hints"] = hints
                         tasks_dict["questions"]["retryCount"] = task_dict["retrycount"]
@@ -126,24 +162,77 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                         tasks_dict["questions"]["points"] = task_dict["pointtotal"]
                         tasks_dict["questions"]["extraData"] = {}
                         tasks_dict["questions"]["mappingTags"] = []
+                        if "mappingtags" in task_dict:
+                            tasks_dict["questions"]["mappingTags"] = []
+                        else:
+                            tasks_dict["questions"]["mappingTags"] = []
+                        if "extradata" in task_dict:
+                            tasks_dict["questions"]["extraData"] = {}
+                            del task_dict["extradata"]
+                        else:
+                            tasks_dict["questions"]["extraData"] = {}
                         task_dict["question"] = tasks_dict["questions"]
                         del task_dict["answers"]
                         del task_dict["type"]
                         del task_dict["pointtotal"]
                         del task_dict["retrycount"]
-
-                    task_task_list.append([{"key": task_id_string, "val": task_dict}])
-                    task_task_exports[task_id_string] = task_dict
-                    with open(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{MD_EXT}", 'r') as file_raw:
+                    if "mappingtags" in task_dict:
+                        del task_dict["mappingtags"]
+                    if "extradata" in task_dict:
+                        del task_dict["extradata"]
+                    attachment_list = 0
+                    if "question" in task_dict:
+                        custom_task_dict_sub = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"],
+                                                 "question": task_dict["question"]}
+                    else:
+                        custom_task_dict_sub = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"]}
+                    task_task_exports[task_id_string] = custom_task_dict_sub
+                    if "attachments" in task_dict:
+                        attachment_list = len(task_dict["attachments"])
+                    attachment_data_dict[task_id_string] = {}
+                    path_builder(content_module_path, False)
+                    path_builder(module_path, False)
+                    path_builder(attachment_build_path, False)
+                    if attachment_list > 0:
+                        for attachment in task_dict["attachments"]:
+                            attachment_uuid = str(uuid4())
+                            attachment_data_dict[task_id_string][attachment_uuid] = \
+                                {"attachmentMetaContentType": "application/pdf",
+                                 "attachmentMetaKey": attachment_uuid,
+                                 "attachmentMetaName": attachment
+                                 }
+                            file_safe_attachment = attachment.replace(" ", "%20")
+                            try:
+                                read_file = f"{input_dir}{DIR_CHARACTER}attachments{DIR_CHARACTER}{file_safe_attachment}"
+                                with open(read_file, 'rb') \
+                                        as module_file:
+                                    module_data = module_file.read()
+                                    attachment_path = f"{attachment_build_path}{attachment_uuid}"
+                                    path_builder(attachment_path, False)
+                                    with open(f'{attachment_path}{DIR_CHARACTER}{file_safe_attachment}', 'wb') \
+                                            as module_file:
+                                        module_file.write(module_data)
+                            except FileNotFoundError:
+                                error("Attachment data misconfig, attachment not found")
+                    if "question" in task_dict:
+                        custom_task_dict_main = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"],
+                                                 "question": task_dict["question"]}
+                    else:
+                        custom_task_dict_main = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"]}
+                    task_task_list.append([{"key": task_id_string, "val": custom_task_dict_main}])
+                    with open(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{MD_EXT}", 'r') \
+                            as file_raw:
                         task_info_dict[task_id_string] = file_raw.read()
-        module_id = str(uuid4())
-        module_id_string = f"{module_id}"
-        module_dict_value = module_id_string
+        module_dict_value = f"module-{module_id_string}"
         package_config_yaml[CONTENT_MODS].append(module_id_string)
+        module_list = []
+        for module in package_config_yaml[CONTENT_MODS]:
+            module_list.append(f"module-{module}")
+        package_config_yaml[CONTENT_MODS] = module_list
         build_json[CONTENT_MOD_STRING][module_dict_value] = {}
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING] = module_config_yaml
         build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_MAPPING_TAGS] = {}
-        build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS] = {}
+
         # TODO Walk path for all markdown files and compile a task for each
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING][TASKS] = task_task_list
         build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = {}
@@ -189,10 +278,11 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
                 task_list_items.append(build_node_package(star_list, "unordered-list"))
             question_data[node_data] = {"data": {"document": {
                 "data": {}, "object": "document", "nodes": task_list_items}, "object": "value"}, "version": 2}
+        #print(build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS])
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = {}
-        for task in task_info_dict:
+        #for task in task_info_dict:
             # TODO parse attachment data
-            build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS][task] = {}
+            #build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS][task] = {}
 
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = task_task_exports
         build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = question_data
@@ -200,10 +290,7 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
             if "question" in task_task_exports[tasks]:
                 questions_descriptions[tasks] = question_data[tasks]
         build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = questions_descriptions
-        with open(f'data{DIR_CHARACTER}module-.tar.gz', 'rb') as blank_module_file:
-            module_data = blank_module_file.read()
-        with open(f'{package_path}{DIR_CHARACTER}content-modules{DIR_CHARACTER}{module_id_string}.tar.gz', 'wb') as module_file:
-            module_file.write(module_data)
+        build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS] = attachment_data_dict
     with open(f'{package_path}{DIR_CHARACTER}export.version', 'w') as export_version_file:
         export_version_file.write("9")
     with open(f'{package_path}{DIR_CHARACTER}package_export{JS_EXT}', 'w') as package_json:
@@ -214,19 +301,23 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id):
 def compile_export_package(compile_dict: str, package_export_name: str):
     current_path = getcwd()
     chdir(current_path)
-    tar_data = tarfile.open(f"{package_export_name}", "w:gz")
     chdir(compile_dict)
-    for (dir_path, dirs, files) in walk(compile_dict):
-        for filename in files:
-            if dir_path == f"{compile_dict}{DIR_CHARACTER}content-modules":
-                chdir(compile_dict)
-                try:
-                    tar_data.add(f"content-modules{DIR_CHARACTER}")
-                except FileExistsError:
-                    pass
-            else:
-                chdir(dir_path)
-                tar_data.add(f"{filename}")
+    content_path = f"{compile_dict}{DIR_CHARACTER}content-modules{DIR_CHARACTER}"
+    for (dir_path, dirs, files) in walk(content_path):
+        for path_value in dirs:
+            if "module-" in path_value:
+                chdir(content_path)
+                tar_file = tarfile.open(f"{path_value}.tar.gz", mode='w:gz')
+                chdir(f"{path_value}")
+                tar_file.add("attachments")
+                tar_file.close()
+                chdir(content_path)
+                rmtree(path_value)
+    chdir(compile_dict)
+    tar_data = tarfile.open(f"{package_export_name}", "w:gz")
+    tar_data.add("package_export.json")
+    tar_data.add("export.version")
+    tar_data.add(f"content-modules")
     tar_data.close()
 
 
@@ -254,7 +345,7 @@ def strip_unsafe_file_names(string_data: str) -> str:
     for character in string_data:
         if character == ":":
             new_string += "%58"
-        elif character == "{DIR_CHARACTER}":
+        elif character == "/":
             new_string += "%47"
         elif character == "?":
             new_string += "%63"
@@ -367,7 +458,7 @@ class PackageExport:
 
 
 class AnswerKey:
-    def __init__(self, raw_data):
+    def __init__(self, raw_data, attachment_data, task):
         question_query = get_value("question", raw_data)
         if question_query:
             self.question = question_query["question"]
@@ -375,6 +466,10 @@ class AnswerKey:
             self.question = None
         self.title = get_value("title", raw_data)["title"]
         self.vm_keys = get_value("vmKeys", raw_data)["vmKeys"]
+        for values in attachment_data:
+            if values == task:
+                self.attachment_data = attachment_data[values]
+        self.task_id = task
 
     def to_yml(self):
         """Return dictionary object type for to{DIR_CHARACTER}from
@@ -382,6 +477,8 @@ class AnswerKey:
         yml_out = ""
         if self.question:
             yml_out += f"type: {self.question['type']}\n"
+            yml_out += f"mappingtags: {self.question['mappingTags']}\n"
+            yml_out += f"extradata: {self.question['extraData']}\n"
             yml_out += f"pointtotal: {self.question['points']}\n"
             yml_out += f"retrycount: {self.question['retryCount']}\n"
             answer_data = "answers: \n"
@@ -408,46 +505,89 @@ class AnswerKey:
             yml_out += answer_data
             hint_number = 0
             if "hints" in self.question:
-                hints_data = ""
-                hints_data += f"hints:\n"
-                for hints in self.question["hints"]:
-                    hint_number += 1
-                    hints_data += f"  {str(hint_number)}: \n    cost: {hints['pointsDeduction']}\n"
-                    hint_text = hints['text'].replace('\n', "\n       ")
-                    hint_text = hint_text.replace('"', "\\\"")
-                    hints_data += f"    message: \"{hint_text}\" \n"
-                yml_out += hints_data
-        tite_string = self.title.replace('"', "\\\"")
-        yml_out += f"title: \"{tite_string}\" \n"
+                if len(self.question["hints"]) > 0:
+                    hints_data = ""
+                    hints_data += f"hints:\n"
+                    for hints in self.question["hints"]:
+                        hint_number += 1
+                        hints_data += f"  {str(hint_number)}: \n    cost: {hints['pointsDeduction']}\n"
+                        hint_text = hints['text'].replace('\n', "\n       ")
+                        hint_text = hint_text.replace('"', "\\\"")
+                        hints_data += f"    message: \"{hint_text}\" \n"
+                    yml_out += hints_data
+        title_string = self.title.replace('"', "\\\"")
+        yml_out += f"title: \"{title_string}\" \n"
         if len(self.vm_keys) > 0:
             keys_vm = "vmKeys:\n"
             for items in self.vm_keys:
                 keys_vm += f"  {items['val']}: \n    ID: \"{items['key']['repetitionGroup']}\"" \
                            f"\n    index: {items['key']['index']}\n"
             yml_out += f"{keys_vm}\n"
+        attachment_list = []
+        for attachment in self.attachment_data:
+            attachment_value = self.attachment_data[attachment]
+            if isinstance(attachment_value, dict):
+                attachment_list.append(attachment_value['attachmentMetaName'])
+        yml_out += f"attachments: {attachment_list}\n"
         return yml_out
+
+
+def extract_all(archives, extract_path):
+    tar = tarfile.open(archives, "r:gz")
+    tar.extractall(path=extract_path)
+    remove(f"{extract_path}{DIR_CHARACTER}package_export.json")
+    remove(f"{extract_path}{DIR_CHARACTER}export.version")
+    attachment_path = f"{extract_path}{DIR_CHARACTER}attachment{DIR_CHARACTER}"
+    for items in glob(f"{extract_path}{DIR_CHARACTER}content-modules{DIR_CHARACTER}*.tar.gz"):
+        tar_module = tarfile.open(items, "r:gz")
+        tar_module.extractall(path=attachment_path)
+        tar_module.close()
+    tar.close()
+    rmtree(f"{extract_path}{DIR_CHARACTER}content-modules")
+    attachment_dir = f"{extract_path}{DIR_CHARACTER}attachments"
+    try:
+        mkdir(attachment_dir)
+    except FileExistsError:
+        rmtree(attachment_dir)
+        mkdir(attachment_dir)
+    for file_name in glob(f"{extract_path}{DIR_CHARACTER}attachment{DIR_CHARACTER}attachments{DIR_CHARACTER}*{DIR_CHARACTER}*"):
+        try:
+            move(file_name, f"{extract_path}{DIR_CHARACTER}attachments{DIR_CHARACTER}")
+        except Error:
+            info("File move failed")
+    try:
+        rmtree(f"{extract_path}{DIR_CHARACTER}attachment")
+    except FileNotFoundError:
+        pass
+
+
+def extract_tar_data(file_name: str, output: str) -> None:
+    """Extract tar gz file from input file_name string."""
+    extract_all(file_name, output)
 
 
 class ModuleExportContentModule:
     def __init__(self, raw_data):
-        self.status = get_value(STAT_S, raw_data)[STAT_S]
-        self.randomizable = get_value('randomizable', raw_data)['randomizable']
-        self.survey = get_value('survey', raw_data)['survey']
-        clone_source = get_value('cloneSource', raw_data)
+        export_tasks = raw_data[EXPORT_MOD_STRING]
+        self.attachment_data = raw_data[CONTENT_MOD_EXPORT_TASK_ATTACHMENTS]
+        self.status = get_value(STAT_S, export_tasks)[STAT_S]
+        self.randomizable = get_value('randomizable', export_tasks)['randomizable']
+        self.survey = get_value('survey', export_tasks)['survey']
+        clone_source = get_value('cloneSource', export_tasks)
         if 'cloneSource' in clone_source:
             self.clone_source = clone_source['cloneSource']
         else:
             self.clone_source = []
-        self.owner = get_value('owner', raw_data)['owner']
-        self.name_value = get_value(N_STR, raw_data)[N_STR]
-        question_data = get_value('questions', raw_data)
+        self.owner = get_value('owner', export_tasks)['owner']
+        self.name_value = get_value(N_STR, export_tasks)[N_STR]
+        question_data = get_value('questions', export_tasks)
         if 'questions' in question_data:
             self.questions = question_data['questions']
-        tasks_data = get_value(TASKS, raw_data)
+        tasks_data = get_value(TASKS, export_tasks)
         if tasks_data:
             self.questions = tasks_data[TASKS]
-        self.duration = get_value('duration', raw_data)['duration']
-        self.description = get_value('description', raw_data)['description']
+        self.duration = get_value('duration', export_tasks)['duration']
+        self.description = get_value('description', export_tasks)['description']
 
     def to_dict(self):
         """Return dictionary object type for to{DIR_CHARACTER}from
@@ -461,7 +601,8 @@ class ModuleExportContentModule:
             N_STR: self.name_value,
             'questions': self.questions,
             'duration': self.duration,
-            'description': self.description
+            'description': self.description,
+            'attachments': self.attachment_data
         }
         return data
 
