@@ -95,7 +95,7 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id, i
         questions_descriptions = {}
         task_task_list = []
         module_id = str(uuid4())
-        module_id_string = f"module-{module_id}"
+        module_id_string = f"{module_id}"
         content_module_path = f"{package_path}{DIR_CHARACTER}content-modules"
         module_path = f"{content_module_path}{DIR_CHARACTER}module-{module_id_string}"
         attachment_build_path = f"{module_path}{DIR_CHARACTER}attachments{DIR_CHARACTER}"
@@ -223,8 +223,12 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id, i
                     with open(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{MD_EXT}", 'r') \
                             as file_raw:
                         task_info_dict[task_id_string] = file_raw.read()
-        module_dict_value = f"{module_id_string}"
+        module_dict_value = f"module-{module_id_string}"
         package_config_yaml[CONTENT_MODS].append(module_id_string)
+        module_list = []
+        for module in package_config_yaml[CONTENT_MODS]:
+            module_list.append(f"module-{module}")
+        package_config_yaml[CONTENT_MODS] = module_list
         build_json[CONTENT_MOD_STRING][module_dict_value] = {}
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING] = module_config_yaml
         build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_MAPPING_TAGS] = {}
@@ -304,8 +308,10 @@ def compile_export_package(compile_dict: str, package_export_name: str):
             if "module-" in path_value:
                 chdir(content_path)
                 tar_file = tarfile.open(f"{path_value}.tar.gz", mode='w:gz')
-                tar_file.add(path_value)
+                chdir(f"{path_value}")
+                tar_file.add("attachments")
                 tar_file.close()
+                chdir(content_path)
                 rmtree(path_value)
     chdir(compile_dict)
     tar_data = tarfile.open(f"{package_export_name}", "w:gz")
