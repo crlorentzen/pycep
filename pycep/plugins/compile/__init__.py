@@ -4,10 +4,26 @@ from logging import info
 from pycep.model import compile_package_data
 
 
-def load(raw_data: dict,  plugin, file_type, output: str, word_list, input_directory, export_dir, owner_id, input_file):
+def load(raw_data: dict,
+         plugin,
+         file_type,
+         output: str,
+         word_list,
+         input_directory,
+         export_dir,
+         owner_id,
+         input_file):
     """Process CLI input with compile plugin function."""
     render = markdown_in
-    return render(raw_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id, input_file)
+    return render(raw_data,
+                  plugin,
+                  file_type,
+                  output,
+                  word_list,
+                  input_directory,
+                  export_dir,
+                  owner_id,
+                  input_file)
 
 
 def chelp():
