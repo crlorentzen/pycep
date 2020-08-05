@@ -3,21 +3,13 @@
 import re
 import random
 import string
-from logging import info
+from os import mkdir
+from shutil import rmtree
+from logging import info, error
 from pycep.render import write_to_file
-from pycep.model import *
+from pycep.model import get_value, strip_unsafe_file_names, strip_end_space, h_one_format, DIR_CHARACTER, \
+    ModuleExportContentModule, AnswerKey, PackageExport, extract_tar_data
 from pycep.content_strings import *
-
-
-def load(raw_data: dict,  plugin, file_type, output: str, word_list, input_directory, export_dir, owner_id, input_file):
-    """Process CLI input with parser plugin function."""
-    return parser(raw_data,  plugin, file_type, output, word_list, input_directory, export_dir, owner_id, input_file)
-
-
-def chelp():
-    """Print click CLI help information."""
-    print(f"Plugin: \n  parser: Render a package export tar.gz to markdown and yaml format.\n")
-    pass
 
 
 def get_task_data(package_export_content_modules: dict, values: str):
@@ -219,43 +211,6 @@ def render_task(task_dict: dict):
     return raw_task_data
 
 
-def package_export_module_info(raw_data):
-    package_data = {}
-    package_export_content_modules = get_value(CONTENT_MOD_STRING, raw_data)[CONTENT_MOD_STRING]
-    for values in package_export_content_modules:
-        module_data = ModuleExportContentModule(package_export_content_modules[values][EXPORT_MOD_STRING])
-        package_data[values] = {}
-        for data_value, value in module_data.to_dict().items():
-            if value and data_value != ('questions' or 'tasks'):
-                package_data[values][data_value] = value
-    return package_data
-
-
-def package_export_question_info(raw_data):
-    package_data = {}
-    package_export_content_modules = get_value(CONTENT_MOD_STRING, raw_data)[CONTENT_MOD_STRING]
-    question_data = {}
-    for values in package_export_content_modules:
-        module_data = ModuleExportContentModule(package_export_content_modules[values][EXPORT_MOD_STRING])
-        package_data[values] = {}
-        for data_value, value in module_data.to_dict().items():
-            if value or data_value == 'questions':
-                package_data[values][data_value] = value
-    for module in package_data:
-        module_name = package_data[module][N_STR]
-        question_data[module_name] = package_data[module]["questions"]
-    return question_data
-
-
-def package_export_package_info(raw_data):
-    package_dict = PackageExport(raw_data[PACKAGE_STR])
-    package_data = {}
-    for data_value, value in package_dict.to_dict().items():
-        if value:
-            package_data[data_value] = value
-    return package_data
-
-
 def get_package_data(package_export_content_modules):
     package_list = []
     for module in package_export_content_modules:
@@ -273,6 +228,15 @@ def yml_format_str(answer_data, task_item, attachment_data, input_file, output):
             task_answer_key = task_answer_key.replace("True", "true")
             task_answer_key = task_answer_key.replace("False", "false")
     return task_answer_key
+
+
+def package_export_package_info(raw_data):
+    package_dict = PackageExport(raw_data[PACKAGE_STR])
+    package_data = {}
+    for data_value, value in package_dict.to_dict().items():
+        if value:
+            package_data[data_value] = value
+    return package_data
 
 
 def parser(raw_data: dict,
