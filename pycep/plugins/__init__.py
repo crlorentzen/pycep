@@ -1,31 +1,22 @@
 """Pycep plugin function load library."""
 # coding=utf-8
-import os
-import glob
-import importlib
-from logging import info
+from pycep.plugins.compile import markdown_in
+from pycep.plugins.spellcheck import spellcheck
+from pycep.plugins.linter import linter, package_questions, package_info
+from pycep.plugins.parser import parser
 
 
 def load_plugins(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id, input_file):
     """Process CLI input into plugin set variable."""
-    modules = glob.glob(os.path.dirname(__file__) + "/*")
-    blacklist = {'__pycache__'}
-    info(f"Loading data from path {os.path.dirname(__file__)}")
-    for module in modules:
-        module_name = os.path.basename(module)
-        if os.path.isdir(module) and module_name not in blacklist:
-            module = '.' + module_name
-            module = importlib.import_module(module, package='pycep.plugins')
-            # This gets the load function in the __init__.py of the plugin.
-            if plugin == ("--help" or "help"):
-                module.chelp()
-            if module_name == plugin:
-                module.load(input_data,
-                            plugin,
-                            file_type,
-                            output,
-                            word_list,
-                            input_directory,
-                            export_dir,
-                            owner_id,
-                            input_file)
+    if plugin == "compile":
+        markdown_in(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id, input_file)
+    elif plugin == "spellcheck":
+        spellcheck(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id, input_file)
+    elif plugin == "linter":
+        linter(input_data)
+    elif plugin == "parser":
+        parser(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id, input_file)
+    elif plugin == "package_questions":
+        package_questions(input_data)
+    elif plugin == "package_info":
+        package_info(input_data)

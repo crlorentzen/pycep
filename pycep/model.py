@@ -59,7 +59,11 @@ def path_builder(build_path, delete):
         mkdir(f"{build_path}")
 
 
-def compile_package_data(package_export_name, input_dir, export_dir, owner_id, input_file):
+def compile_package_data(package_export_name: str,
+                         input_dir,
+                         export_dir,
+                         owner_id,
+                         input_file):
     package_dir = input_dir
     dir_paths = package_dir.split(f"{DIR_CHARACTER}")
     total_length = len(dir_paths)
@@ -183,7 +187,7 @@ def compile_package_data(package_export_name, input_dir, export_dir, owner_id, i
                     attachment_list = 0
                     if "question" in task_dict:
                         custom_task_dict_sub = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"],
-                                                 "question": task_dict["question"]}
+                                                "question": task_dict["question"]}
                     else:
                         custom_task_dict_sub = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"]}
                     task_task_exports[task_id_string] = custom_task_dict_sub

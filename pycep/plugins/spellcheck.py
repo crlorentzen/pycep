@@ -19,32 +19,6 @@ def custom_lis(custom_list):
     """--custom_list help=Custom Word List Path Directory"""
 
 
-def chelp():
-    print(f"Plugin: \n  spellcheck: A simple spell check plugin.\n")
-
-
-def load(input_data,
-         plugin,
-         file_type,
-         output,
-         word_list,
-         input_directory,
-         export_dir,
-         owner_id,
-         input_file):
-    """Process CLI input with spellcheck function."""
-    cli = click.CommandCollection(sources=[custom_lis])
-    return spellcheck(input_data,
-                      plugin,
-                      file_type,
-                      output,
-                      word_list,
-                      input_directory,
-                      export_dir,
-                      owner_id,
-                      input_file)
-
-
 def sentiment_analyzer(input_data) -> None:
     """Check package for spelling errors."""
     nltk.download('vader_lexicon')
