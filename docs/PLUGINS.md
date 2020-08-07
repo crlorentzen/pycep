@@ -32,7 +32,7 @@ The spellcheck plugin searches for errors using a default spelling word list inc
 
 ### How to use the spellcheck plugin against tar.gz export
 
-    cepcli.pp --plugin spellcheck --input_file Demo_Package_export.tar.gz 
+    cepcli.py --plugin spellcheck --input_file Demo_Package_export.tar.gz 
     
     ERROR:root:Content Module Name: Training Demo: Introduction to Pycep
     Task Title: How to use spellcheck
@@ -72,3 +72,11 @@ Currently the compile plugin compiles a package directory into an export package
 Currently the info plugin prints basic information about modules.
 
     cepcli.py -f Demo_Package_export.tar.gz -p package_questions
+
+
+
+## Mapping Tags plugin
+
+Currently the info plugin prints the mapping tags attached to a module in yaml output.
+
+    cepcli.py -f Demo_Package_export.tar.gz -p mapping_tags

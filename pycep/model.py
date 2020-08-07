@@ -167,7 +167,7 @@ def compile_package_data(package_export_name: str,
                         tasks_dict["questions"]["extraData"] = {}
                         tasks_dict["questions"]["mappingTags"] = []
                         if "mappingtags" in task_dict:
-                            tasks_dict["questions"]["mappingTags"] = []
+                            tasks_dict["questions"]["mappingTags"] = task_dict['mappingtags']
                         else:
                             tasks_dict["questions"]["mappingTags"] = []
                         if "extradata" in task_dict:
@@ -180,6 +180,7 @@ def compile_package_data(package_export_name: str,
                         del task_dict["type"]
                         del task_dict["pointtotal"]
                         del task_dict["retrycount"]
+                    #TODO add mappingtags compile function
                     if "mappingtags" in task_dict:
                         del task_dict["mappingtags"]
                     if "extradata" in task_dict:
@@ -476,7 +477,7 @@ class AnswerKey:
         self.task_id = task
 
     def to_yml(self):
-        """Return dictionary object type for to{DIR_CHARACTER}from
+        """Return dictionary object type for to/from
          dict formatting."""
         yml_out = ""
         if self.question:

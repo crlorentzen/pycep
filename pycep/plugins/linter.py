@@ -117,6 +117,24 @@ def package_questions(raw_data: dict):
         print(f"\n")
 
 
+def mapping_tags(raw_data: dict):
+    mapping_tags_yaml_string = ""
+    for items in raw_data[CONTENT_MOD_STRING]:
+        mapping_path = raw_data[CONTENT_MOD_STRING][items][CONTENT_MOD_EXPORT_MAPPING_TAGS]
+        for mapping in mapping_path:
+            mapping_tags_yaml_string += f"{mapping}:{NEW_LINE}"
+            # Removed this as zero values had anything in them?
+            # mapping_tags_yaml_string += f"  {TAG_NAME}:  \"{mapping_path[mapping][TAG_NAME]}\" {NEW_LINE}"
+            # Removed this as zero values had anything in them?
+            # mapping_tags_yaml_string += f"  {TAG_CHILDREN}: {mapping_path[mapping][TAG_CHILDREN]} {NEW_LINE}"
+            tag_type_string = mapping_path[mapping][TAG_TYPE].replace('\"', '\\"')
+            mapping_tags_yaml_string += f"  {TAG_TYPE}: \"{tag_type_string}\" {NEW_LINE}"
+            mapping_tags_yaml_string += f"  {TAG_DESCRIPTION}: {NEW_LINE}"
+            tag_description_string = mapping_path[mapping][TAG_DESCRIPTION].replace('\"', '\\"')
+            mapping_tags_yaml_string += f"    \"{tag_description_string}\" {NEW_LINE}"
+    print(mapping_tags_yaml_string)
+
+
 def linter(raw_data: dict):
     """Process content module for cep standards."""
     package_export_content_modules = get_value(CONTENT_MOD_STRING, raw_data)[CONTENT_MOD_STRING]

@@ -3,6 +3,8 @@
 import click
 import json
 import ujson
+
+
 from logging import DEBUG, ERROR, basicConfig, error
 from pycep import __version__
 from pycep.plugins import load_plugins
