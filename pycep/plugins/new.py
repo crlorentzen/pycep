@@ -2,7 +2,7 @@
 from os import mkdir, rmdir
 
 from click import prompt
-from model import DIR_CHARACTER, strip_unsafe_file_names, NEW_LINE, STAT_S
+from pycep.model import DIR_CHARACTER, strip_unsafe_file_names, NEW_LINE, STAT_S
 
 
 def selection_list(question, question_list, yaml_key):
