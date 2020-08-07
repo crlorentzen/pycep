@@ -12,7 +12,7 @@ def load_plugins(input_data, plugin, file_type, output, word_list, input_directo
     if plugin == "compile":
         markdown_in(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id, input_file)
     elif plugin == "spellcheck":
-        spellcheck(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id, input_file)
+        spellcheck(input_data, word_list)
     elif plugin == "linter":
         linter(input_data)
     elif plugin == "parser":

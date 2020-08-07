@@ -4,7 +4,6 @@ import re
 import click
 import nltk
 
-from os import curdir
 from logging import info, error
 from nltk.sentiment import SentimentIntensityAnalyzer
 # noinspection PyPackageRequirements
@@ -46,14 +45,7 @@ def sentiment_analyzer(input_data) -> None:
 
 
 def spellcheck(input_data: dict,
-               plugin,
-               file_type,
-               output,
-               word_list,
-               input_directory,
-               export_dir,
-               owner_id,
-               input_file) -> None:
+               word_list: str) -> None:
     """Check package for spelling errors."""
     spell = SpellChecker()
     try:
@@ -84,9 +76,10 @@ def spell_check_task(spell, line: dict, titles: str, package: str) -> None:
             correct_spelling = spell.correction(task_line_item)
             if task_line_item == correct_spelling:
                 correct_spelling = "N\A"
-            error(f"Content Module Name: {package}\n"
-                  f"Task Title: {titles}\n"
-                  f"Line Number: {str(line_number)}\n"
-                  f"Line Data: {item}\n"
-                  f"Spelling Error: {task_line_item}\n"
-                  f"Suggested replacement: {correct_spelling}\n")
+            if len(task_line_item) < 20:
+                error(f"Content Module Name: {package}\n"
+                      f"Task Title: {titles}\n"
+                      f"Line Number: {str(line_number)}\n"
+                      f"Line Data: {item}\n"
+                      f"Spelling Error: {task_line_item}\n"
+                      f"Suggested replacement: {correct_spelling}\n")
