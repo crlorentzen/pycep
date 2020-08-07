@@ -20,7 +20,7 @@ setup(
                  'License :: OSI Approved :: Apache 2.0',
                  'Programming Language :: Python :: 3.7'],
     package_data={
-        'pycep': ['*.txt'],  'pycep:ceps': ['*.*'], 'pycep:data': ['*.txt']
+        'pycep': ['*.txt'],  'pycep:ceps': ['*.*'], 'pycep:data': ['*.txt', '*.yml', '*.json']
     },
     scripts=['pycep/cepcli.py'],
     )
