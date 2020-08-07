@@ -4,6 +4,7 @@ import re
 import click
 import nltk
 
+from os import curdir
 from logging import info, error
 from nltk.sentiment import SentimentIntensityAnalyzer
 # noinspection PyPackageRequirements
@@ -62,8 +63,9 @@ def spellcheck(input_data: dict,
     except FileNotFoundError:
         info("Word list not found searching up a directory...")
         # Search for word list if not found.
-        spell.word_frequency.load_text_file(word_list)
-        with open("../" + word_list, 'r') as data_file:
+        search_path = f"/opt/pycep/word_list.txt"
+        spell.word_frequency.load_text_file(search_path)
+        with open(search_path, 'r') as data_file:
             word_list_data = data_file.read()
     known_data_list = word_list_data.split("\n")
     spell.known(known_data_list)

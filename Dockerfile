@@ -34,6 +34,7 @@ RUN  apk add --no-cache -t build_req \
    && rm -rf /tmp/pycep \
    && apk del --purge build_req
 
+COPY pycep/data/word_list.txt /opt/pycep/word_list.txt
 VOLUME ["/opt/pycep"]
 USER pycep
 ENTRYPOINT ["cepcli.py"]
