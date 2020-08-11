@@ -39,3 +39,4 @@ TAG_NAME = 'mappingTagName'
 TAG_CHILDREN = 'mappingTagChildren'
 TAG_DESCRIPTION = 'mappingTagDescription'
 TAG_TYPE = 'mappingTagType'
+BREAK_LINE = "_________________________________________________________________________________________________"

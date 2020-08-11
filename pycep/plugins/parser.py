@@ -6,13 +6,15 @@ import string
 from os import mkdir
 from shutil import rmtree
 from logging import info, error
+from yaml_info.yamlinfo import YamlInfo
 from pycep.render import write_to_file
 from pycep.model import get_value, strip_unsafe_file_names, strip_end_space, h_one_format, DIR_CHARACTER, \
-    ModuleExportContentModule, AnswerKey, PackageExport, extract_tar_data
+    ModuleExportContentModule, AnswerKey, PackageExport, extract_tar_data, get_task_markdown_data
 from pycep.content_strings import *
 
 
-def get_task_data(package_export_content_modules: dict, values: str):
+def get_task_data(package_export_content_modules: dict,
+                  values: str):
     """Return raw data from package and package name."""
     package_data = package_export_content_modules[values]
     package_value = package_data[EXPORT_MOD_STRING]
@@ -30,7 +32,7 @@ def get_task_data(package_export_content_modules: dict, values: str):
     return raw_data, package_name
 
 
-def return_non_data_task(input_data) -> dict:
+def return_non_data_task(input_data: dict) -> dict:
     """Return structured data dict."""
     package_export_content_modules = get_value(CONTENT_MOD_STRING, input_data)[CONTENT_MOD_STRING]
     task_dict = {}
@@ -52,7 +54,9 @@ def return_non_data_task(input_data) -> dict:
     return task_dict
 
 
-def render_task_name(package_export_content_modules, values, task_item):
+def render_task_name(package_export_content_modules: dict,
+                     values: str,
+                     task_item: str):
     task_title = None
     if EXPORT_TASKS in package_export_content_modules[values]:
         task_title = package_export_content_modules[values][EXPORT_TASKS][task_item]['title']
@@ -62,7 +66,8 @@ def render_task_name(package_export_content_modules, values, task_item):
     return task_title
 
 
-def get_task_data_listed(package_export_content_modules: dict, values: str):
+def get_task_data_listed(package_export_content_modules: dict,
+                         values: str):
     """Return raw data from package and package name."""
     package_value = package_export_content_modules[values][EXPORT_MOD_STRING]
     package_name = package_value[N_STR]
@@ -94,7 +99,8 @@ def id_generator(size=6, chars=string.ascii_lowercase):
     return ''.join(random.choice(chars) for _ in range(size))
 
 
-def render_list_item(task_line: dict, heading_level: str):
+def render_list_item(task_line: dict,
+                     heading_level: str):
     """Return formatted list data."""
     raw_list_data = ""
     for node in task_line:
@@ -108,7 +114,9 @@ def render_list_item(task_line: dict, heading_level: str):
     return raw_list_data
 
 
-def render_nested_list_nodes(task_line: dict, format_string: str, list_type: str):
+def render_nested_list_nodes(task_line: dict,
+                             format_string: str,
+                             list_type: str):
     """Return raw list data from nested node data."""
     raw_list_data = ""
     order_count = 0
@@ -130,6 +138,37 @@ def render_nested_list_nodes(task_line: dict, format_string: str, list_type: str
                         elif list_type is ORDERED_STR:
                             raw_list_data += f"{str(order_count)}. {nested_node[NODES][0][TXT]}{NEW_LINE}"
     return raw_list_data
+
+
+def render_paragraph_data(paragraph_item: dict,
+                          count: int,
+                          task_line: dict):
+    raw_task_data = ""
+    if "marks" in paragraph_item and len(paragraph_item[M_STR]) > 0:
+        item_type = paragraph_item[M_STR][0][TYPE_STRING]
+        item_text = paragraph_item[TXT]
+        if "bold" == paragraph_item[M_STR][0][TYPE_STRING]:
+            if len(paragraph_item[TXT]) > 0:
+                raw_task_data += f"**{strip_end_space(item_text)}** "
+        elif 'code-mark' == item_type:
+            raw_task_data += f"`{strip_end_space(item_text)}` "
+        elif 'strikethrough' == item_type:
+            raw_task_data += f"~~{strip_end_space(item_text)}~~ "
+        elif 'underline' == item_type:
+            raw_task_data += f"__{strip_end_space(item_text)}__ "
+        elif 'italic' == item_type:
+            raw_task_data += f"*{strip_end_space(item_text)}* "
+        else:
+            error(f"Missing type parsing for value: {str(item_text)}")
+    else:
+        if TXT in task_line[NODES][count]:
+            raw_task_data += task_line[NODES][count][TXT]
+        elif "data" in task_line[NODES][count]:
+            if task_line[NODES][count][TYPE_STRING] == "link":
+                raw_task_data += f"<{task_line[NODES][count][NODES][0][TXT]}>"
+            else:
+                error(f"Unknown Data Format not being processed properly {task_line[NODES][count][TYPE_STRING]}")
+    return raw_task_data
 
 
 def render_task(task_dict: dict):
@@ -155,7 +194,10 @@ def render_task(task_dict: dict):
                         else:
                             error(f"Missing type parsing for value: {str(task_line[NODES][0][M_STR][0][TYPE_STRING])}")
                     else:
-                        raw_task_data += task_line[NODES][0][TXT]
+                        count = 0
+                        for paragraph_item in task_line[NODES]:
+                            raw_task_data += render_paragraph_data(paragraph_item, count, task_line)
+                            count += 1
                 elif 'unordered-list' in task_line[TYPE_STRING]:
                     raw_list_data = render_nested_list_nodes(task_line[NODES], "   * ", UNORDERED_STR)
                     if len(raw_list_data) > 0:
@@ -211,7 +253,7 @@ def render_task(task_dict: dict):
     return raw_task_data
 
 
-def get_package_data(package_export_content_modules):
+def get_package_data(package_export_content_modules: dict):
     package_list = []
     for module in package_export_content_modules:
         pck_name = strip_unsafe_file_names(package_export_content_modules[module][EXPORT_MOD_STRING]['name'])
@@ -219,7 +261,7 @@ def get_package_data(package_export_content_modules):
     return package_list
 
 
-def yml_format_str(answer_data, task_item, attachment_data, input_file, output):
+def yml_format_str(answer_data, task_item, attachment_data):
     task_answer_key = None
     for title in answer_data.items():
         search_title = title[1]['title']
@@ -230,7 +272,7 @@ def yml_format_str(answer_data, task_item, attachment_data, input_file, output):
     return task_answer_key
 
 
-def package_export_package_info(raw_data):
+def package_export_package_info(raw_data: dict):
     package_dict = PackageExport(raw_data[PACKAGE_STR])
     package_data = {}
     for data_value, value in package_dict.to_dict().items():
@@ -240,14 +282,8 @@ def package_export_package_info(raw_data):
 
 
 def parser(raw_data: dict,
-           plugin,
-           file_type,
            output: str,
-           word_list,
-           input_directory,
-           export_dir,
-           owner_id,
-           input_file):
+           input_file: str):
     """Output package to md format."""
     package_export_content_modules = get_value(CONTENT_MOD_STRING, raw_data)[CONTENT_MOD_STRING]
     package_data = get_package_data(package_export_content_modules)
@@ -270,44 +306,31 @@ def parser(raw_data: dict,
             except FileExistsError:
                 rmtree(package_path)
                 mkdir(package_path)
-            write_to_file(f"{package_path}{package_name_value}{YAML_EXT}",
+            write_to_file(f"{package_path}module.yml",
                           ModuleExportContentModule(package_export_content_modules[values]).to_yml())
+            module_task_yml = ""
+            module_task_md = ""
             for task_item in raw_task_data[package]:
-                task_answer_key = yml_format_str(answer_data, task_item, attachment_data, input_file, output)
-                task_path = f"{package_path}{TASKS}{DIR_CHARACTER}"
-                try:
-                    task_name_string = strip_unsafe_file_names(task_item)
-                    write_to_file(f"{task_path}{task_name_string}{MD_EXT}",
-                                  (h_one_format(task_item) + raw_task_data[package][task_item]))
-                    if task_answer_key:
-                        write_to_file(f"{package_path}"
-                                      f"{TASKS}{DIR_CHARACTER}{task_name_string}{YAML_EXT}", task_answer_key)
-                except FileNotFoundError:
-                    try:
-                        mkdir(f"{task_path}")
-                        task_name_string_value = strip_unsafe_file_names(task_item)
-                        write_to_file(
-                            f"{task_path}{task_name_string_value}"
-                            f"{MD_EXT}", (h_one_format(task_item) + raw_task_data[package][task_item]))
-                        if task_answer_key:
-                            write_to_file(f"{package_path}"
-                                          f"{TASKS}{DIR_CHARACTER}{task_name_string_value}{YAML_EXT}",
-                                          task_answer_key)
-                    except FileExistsError:
-                        try:
-                            task_name_string_value = strip_unsafe_file_names(task_item)
-                            write_to_file(
-                                f"{task_path}{task_name_string_value}"
-                                f"{MD_EXT}", (h_one_format(task_item) + raw_task_data[package][task_item]))
-                            if task_answer_key:
-                                write_to_file(f"{package_path}"
-                                              f"{TASKS}{DIR_CHARACTER}{task_name_string_value}{YAML_EXT}",
-                                              (str(task_answer_key)))
-                        except FileExistsError:
-                            error(f"{package}{task_item} duplicate task names found.")
-                        except:
-                            error("Unknown error not parsing properly")
-                    except:
-                        error("Unknown error not parsing properly")
-                except:
-                    error("Unknown error not parsing properly")
+                task_answer_key = yml_format_str(answer_data, task_item, attachment_data)
+                module_task_md += (h_one_format(task_item) + raw_task_data[package][task_item]) + "\n"
+                if task_answer_key:
+                    module_task_yml += task_answer_key
+            tasks_path = f"{package_path}tasks.md"
+            write_to_file(tasks_path, module_task_md)
+            tasks_answer_key_path = f"{package_path}tasks.yml"
+            write_to_file(tasks_answer_key_path, module_task_yml)
+            with open(tasks_path, 'r') as task_markdown_data:
+                ordered_markdown_data = task_markdown_data.read()
+            module_config_yaml = YamlInfo(f"{package_path}module.yml", "none", "none").get()
+            fixed_order = ""
+            if "tasks" in module_config_yaml:
+                for tasks in module_config_yaml["tasks"]:
+                    if isinstance(tasks, list):
+                        for task in tasks:
+                            fixed_order += f"# {task}{NEW_LINE}"
+                            fixed_order += f"{get_task_markdown_data(ordered_markdown_data, task)}{BREAK_LINE}{NEW_LINE}"
+                    else:
+                        fixed_order += f"# {tasks}{NEW_LINE}"
+                        fixed_order += f"{get_task_markdown_data(ordered_markdown_data, tasks)}{BREAK_LINE}{NEW_LINE}"
+            with open(tasks_path, 'w') as fixed_markdown:
+                fixed_markdown.write(fixed_order)

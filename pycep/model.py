@@ -21,20 +21,79 @@ elif SYSTEM_PLATFORM != ("Linux" or "Darwin"):
 NEW_LINE = "\n"
 
 
+def build_node_type(node_type):
+    return {"data": {}, "object": "mark", "type": node_type}
+
+
 def build_text_line(line_data):
-    if "__" in line_data:
-        line_data.replace("__", "##")
-    if "**" in line_data:
-        line_data.replace("**", "")
-    if "*" in line_data:
-        line_data.replace("*", "")
-    if "\\\\" in line_data:
-        line_data.replace("\\\\", "\\")
-    data_nodes = {"marks": [],
+    data_nodes = {"text": line_data,
                   "object": "text",
-                  "text": line_data
+                  "marks": []
                   }
     return data_nodes
+
+
+def check_string(string_data, match_value):
+    if string_data[:len(match_value)] == match_value and string_data[-len(match_value):] == match_value:
+        return string_data[len(match_value):-len(match_value)]
+    return None
+
+
+def build_mark(line_data):
+    build_line = ""
+    mark_list = []
+    new_test = line_data.split(" ")
+    new_string = ""
+    for item in new_test:
+        test = check_string(item, "**")
+        if test:
+            new_data = build_text_line(new_string)
+            mark_list.append(new_data)
+            new_bold_item = build_text_line(test)
+            new_bold_item["marks"] = [build_node_type("bold")]
+            mark_list.append(new_bold_item)
+            new_string = ""
+        else:
+            test_italic = check_string(item, "*")
+            if test_italic:
+                new_data = build_text_line(new_string)
+                mark_list.append(new_data)
+                new_italic_item = build_text_line(test_italic)
+                new_italic_item["marks"] = [build_node_type("italic")]
+                mark_list.append(new_italic_item)
+                new_string = ""
+            else:
+                test_underscore = check_string(item, "__")
+                if test_underscore:
+                    new_data = build_text_line(new_string)
+                    mark_list.append(new_data)
+                    new_underscore_item = build_text_line(test_underscore)
+                    new_underscore_item["marks"] = [build_node_type("underline")]
+                    mark_list.append(new_underscore_item)
+                    new_string = ""
+                else:
+                    test_code = check_string(item, "`")
+                    if test_code:
+                        new_data = build_text_line(new_string)
+                        mark_list.append(new_data)
+                        new_code_item = build_text_line(test_code)
+                        new_code_item["marks"] = [build_node_type("code-mark")]
+                        mark_list.append(new_code_item)
+                        new_string = ""
+                    else:
+                        test_strikethrough = check_string(item, "~~")
+                        if test_strikethrough:
+                            new_data = build_text_line(new_string)
+                            mark_list.append(new_data)
+                            new_strikethrough_item = build_text_line(test_strikethrough)
+                            new_strikethrough_item["marks"] = [build_node_type("strikethrough")]
+                            mark_list.append(new_strikethrough_item)
+                            new_string = ""
+                        else:
+                            new_string += f"{item} "
+        #new_string += f"{item} "
+    mark_list.append(build_text_line(new_string))
+    return mark_list
 
 
 def build_node_package(nodes_data: list, data_type: str):
@@ -59,11 +118,27 @@ def path_builder(build_path, delete):
         mkdir(f"{build_path}")
 
 
+def get_task_markdown_data(markdown_data: str,
+                           task: str):
+    task_data = ""
+    task_file = 0
+    for line_data in markdown_data.splitlines():
+        line_chunk = line_data[2:]
+        line_search = line_data[:2]
+
+        if line_chunk == task:
+            task_file = 1
+        elif line_search == "# ":
+            task_file = 0
+        else:
+            if task_file == 1 and line_data != BREAK_LINE:
+                task_data += line_data + "\n"
+    return task_data
+
+
 def compile_package_data(package_export_name: str,
-                         input_dir,
-                         export_dir,
-                         owner_id,
-                         input_file):
+                         input_dir: str,
+                         export_dir: str):
     package_dir = input_dir
     dir_paths = package_dir.split(f"{DIR_CHARACTER}")
     total_length = len(dir_paths)
@@ -88,11 +163,10 @@ def compile_package_data(package_export_name: str,
     file_list = package_config_yaml["contentModules"]
     package_config_yaml[CONTENT_MODS] = []
     build_json[CONTENT_MOD_STRING] = {}
-    tasks_path = f"{DIR_CHARACTER}{TASKS}{DIR_CHARACTER}"
     for file_name in file_list:
         task_task_exports = {}
         attachment_data_dict = {}
-        mod_config_path = f"{input_dir}{DIR_CHARACTER}{file_name}{DIR_CHARACTER}{file_name}{YAML_EXT}"
+        mod_config_path = f"{input_dir}{DIR_CHARACTER}{file_name}{DIR_CHARACTER}module.yml"
         module_config_yaml = YamlInfo(mod_config_path, "none", "none").get()
         task_info_dict = {}
         question_data = {}
@@ -103,35 +177,85 @@ def compile_package_data(package_export_name: str,
         content_module_path = f"{package_path}{DIR_CHARACTER}content-modules"
         module_path = f"{content_module_path}{DIR_CHARACTER}module-{module_id_string}"
         attachment_build_path = f"{module_path}{DIR_CHARACTER}attachments{DIR_CHARACTER}"
+        test_build = YamlInfo(f"{input_dir}{DIR_CHARACTER}{file_name}{DIR_CHARACTER}tasks.yml", "none", "none").get()
+        with open(f"{input_dir}{DIR_CHARACTER}{file_name}{DIR_CHARACTER}tasks.md", 'r') as markdown_data_file:
+            module_markdown_data = markdown_data_file.read()
         if "tasks" in module_config_yaml:
             for tasks in module_config_yaml["tasks"]:
                 sub_task_list = []
                 if isinstance(tasks, list):
                     for task in tasks:
-                        full_file_name = task
                         task_id = str(uuid4())
                         task_id_string = f"task-{task_id}"
-
-                        task_dict = \
-                            YamlInfo(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{YAML_EXT}",
-                                     "none", "none").get()
-                        del task_dict["attachments"]
-                        if "question" in task_dict:
-                            custom_task_dict = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"], "question": task_dict["question"]}
+                        task_dict = test_build[task]
+                        if "vmKeys" not in task_dict:
+                            task_dict["vmKeys"] = []
                         else:
-                            custom_task_dict = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"]}
+                            vm_list = []
+                            for vm in task_dict["vmKeys"]:
+                                vm_list.append({'key': {'repetitionGroup': task_dict["vmKeys"][vm]['ID'],
+                                                        'index': task_dict["vmKeys"][vm]['index']}, 'val': vm})
+                            task_dict["vmKeys"] = vm_list
+                        if "attachments" in task_dict:
+                            del task_dict["attachments"]
+                        if "answers" in task_dict:
+                            question_list = task_dict["answers"]
+                            tasks_dict = {}
+                            tasks_dict["questions"] = {}
+                            choices = []
+                            true_str = "true"
+                            false_str = "false"
+                            for correct in question_list["correct"]:
+                                choices.append({'value': correct, 'correct': True})
+                            if "incorrect" in question_list:
+                                for wrong in question_list["incorrect"]:
+                                    choices.append({'value': wrong, 'correct': False})
+                            hints = []
+                            if "hints" in task_dict:
+                                if task_dict["hints"]:
+                                    for hint in task_dict["hints"]:
+                                        hints.append({'text': task_dict["hints"][hint]["message"],
+                                                      'pointsDeduction': task_dict["hints"][hint]["cost"]})
+                                    del task_dict["hints"]
+                            tasks_dict["questions"]["choices"] = choices
+                            tasks_dict["questions"]["hints"] = hints
+                            tasks_dict["questions"]["retryCount"] = task_dict["retrycount"]
+                            tasks_dict["questions"]["type"] = task_dict["type"]
+                            tasks_dict["questions"]["points"] = task_dict["pointtotal"]
+                            tasks_dict["questions"]["extraData"] = {}
+                            tasks_dict["questions"]["mappingTags"] = []
+                            if "mappingtags" in task_dict:
+                                tasks_dict["questions"]["mappingTags"] = task_dict['mappingtags']
+                            else:
+                                tasks_dict["questions"]["mappingTags"] = []
+                            if "extradata" in task_dict:
+                                tasks_dict["questions"]["extraData"] = {}
+                                del task_dict["extradata"]
+                            else:
+                                tasks_dict["questions"]["extraData"] = {}
+                            task_dict["question"] = tasks_dict["questions"]
+                            del task_dict["answers"]
+                            del task_dict["type"]
+                            del task_dict["pointtotal"]
+                            del task_dict["retrycount"]
+                        if "question" in task_dict:
+                            custom_task_dict = {"vmKeys": task_dict["vmKeys"],
+                                                "title": task,
+                                                "question": task_dict["question"]}
+                        else:
+                            if "vmKeys" in task_dict:
+                                custom_task_dict = {"vmKeys": task_dict["vmKeys"], "title": task}
+                            else:
+                                custom_task_dict = {"vmKeys": [], "title": task}
                         sub_task_list.append({"key": task_id_string, "val": custom_task_dict})
                         task_task_exports[task_id_string] = custom_task_dict
-                        with open(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{MD_EXT}", 'r') \
-                                as file_raw:
-                            task_info_dict[task_id_string] = file_raw.read()
+                        task_info_dict[task_id_string] = get_task_markdown_data(module_markdown_data, task)
+                        attachment_data_dict[task_id_string] = {}
                     task_task_list.append(sub_task_list)
                 else:
-                    full_file_name = tasks
                     task_id = str(uuid4())
                     task_id_string = f"task-{task_id}"
-                    task_dict = YamlInfo(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{YAML_EXT}",
-                                         "none", "none").get()
+                    task_dict = test_build[tasks]
                     if "vmKeys" not in task_dict:
                         task_dict["vmKeys"] = []
                     else:
@@ -180,17 +304,16 @@ def compile_package_data(package_export_name: str,
                         del task_dict["type"]
                         del task_dict["pointtotal"]
                         del task_dict["retrycount"]
-                    #TODO add mappingtags compile function
                     if "mappingtags" in task_dict:
                         del task_dict["mappingtags"]
                     if "extradata" in task_dict:
                         del task_dict["extradata"]
                     attachment_list = 0
                     if "question" in task_dict:
-                        custom_task_dict_sub = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"],
+                        custom_task_dict_sub = {"vmKeys": task_dict["vmKeys"], "title": tasks,
                                                 "question": task_dict["question"]}
                     else:
-                        custom_task_dict_sub = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"]}
+                        custom_task_dict_sub = {"vmKeys": task_dict["vmKeys"], "title": tasks}
                     task_task_exports[task_id_string] = custom_task_dict_sub
                     if "attachments" in task_dict:
                         attachment_list = len(task_dict["attachments"])
@@ -198,9 +321,11 @@ def compile_package_data(package_export_name: str,
                     path_builder(content_module_path, False)
                     path_builder(module_path, False)
                     path_builder(attachment_build_path, False)
+                    attachment_data_dict[task_id_string] = {}
                     if attachment_list > 0:
                         for attachment in task_dict["attachments"]:
                             attachment_uuid = str(uuid4())
+                            # TODO update this to support more than just pdf files
                             attachment_data_dict[task_id_string][attachment_uuid] = \
                                 {"attachmentMetaContentType": "application/pdf",
                                  "attachmentMetaKey": attachment_uuid,
@@ -215,19 +340,19 @@ def compile_package_data(package_export_name: str,
                                     attachment_path = f"{attachment_build_path}{attachment_uuid}"
                                     path_builder(attachment_path, False)
                                     with open(f'{attachment_path}{DIR_CHARACTER}{file_safe_attachment}', 'wb') \
-                                            as module_file:
-                                        module_file.write(module_data)
+                                            as module_file_data:
+                                        module_file_data.write(module_data)
                             except FileNotFoundError:
                                 error("Attachment data misconfig, attachment not found")
+                    else:
+                        attachment_data_dict[task_id_string] = {}
                     if "question" in task_dict:
-                        custom_task_dict_main = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"],
+                        custom_task_dict_main = {"vmKeys": task_dict["vmKeys"], "title": tasks,
                                                  "question": task_dict["question"]}
                     else:
-                        custom_task_dict_main = {"vmKeys": task_dict["vmKeys"], "title": task_dict["title"]}
+                        custom_task_dict_main = {"vmKeys": task_dict["vmKeys"], "title": tasks}
                     task_task_list.append([{"key": task_id_string, "val": custom_task_dict_main}])
-                    with open(f"{input_dir}{DIR_CHARACTER}{file_name}{tasks_path}{full_file_name}{MD_EXT}", 'r') \
-                            as file_raw:
-                        task_info_dict[task_id_string] = file_raw.read()
+                    task_info_dict[task_id_string] = get_task_markdown_data(module_markdown_data, tasks)
         module_dict_value = f"module-{module_id_string}"
         package_config_yaml[CONTENT_MODS].append(module_id_string)
         module_list = []
@@ -237,19 +362,18 @@ def compile_package_data(package_export_name: str,
         build_json[CONTENT_MOD_STRING][module_dict_value] = {}
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING] = module_config_yaml
         build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_MAPPING_TAGS] = {}
-
-        # TODO Walk path for all markdown files and compile a task for each
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_MOD_STRING][TASKS] = task_task_list
         build_json[CONTENT_MOD_STRING][module_dict_value][QUESTION_DESC] = {}
         build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = {}
-        # TODO Build proper markdown parser to dict
         for node_data in task_info_dict:
             task_list_items = []
             code_list = []
             star_list = []
             for line_data in task_info_dict[node_data].splitlines():
                 line_chunk = line_data[:4]
-                if line_chunk == "### ":
+                if line_chunk[:-2] == "# ":
+                    info("Processing task Title ")
+                elif line_chunk == "### ":
                     task_list_items.append(build_node_package([build_text_line(line_data[4:])], "heading-two"))
                 elif line_chunk == "   -":
                     star_list.append(build_node_package([build_node_package([build_text_line(line_data[5:])],
@@ -263,8 +387,7 @@ def compile_package_data(package_export_name: str,
                     task_list_items.append(build_node_package([build_text_line(line_data[3:])], "heading-one"))
                 elif line_chunk[:-2] == "**":
                     task_list_items.append(build_node_package([build_text_line(line_data[2:-2])], "bold"))
-                elif line_chunk[:-2] == "# ":
-                    info("Processing task Title ")
+
                 elif line_chunk[:-2] == "![":
                     image_data = build_node_package([build_text_line("")], "image-block")
                     image_data["data"] = {"imageData": line_data[10:-1]}
@@ -276,19 +399,14 @@ def compile_package_data(package_export_name: str,
                     task_list_items.append(build_node_package(star_list, "unordered-list"))
                     star_list = []
                 elif len(line_data) > 0:
-                    task_list_items.append(build_node_package([build_text_line(line_data)], "paragraph"))
+                    task_list_items.append(build_node_package(build_mark(line_data), "paragraph"))
             if len(code_list) > 0:
                 task_list_items.append(build_node_package(code_list, "code-block"))
             elif len(star_list) > 0:
                 task_list_items.append(build_node_package(star_list, "unordered-list"))
             question_data[node_data] = {"data": {"document": {
                 "data": {}, "object": "document", "nodes": task_list_items}, "object": "value"}, "version": 2}
-        #print(build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS])
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = {}
-        #for task in task_info_dict:
-            # TODO parse attachment data
-            #build_json[CONTENT_MOD_STRING][module_dict_value][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS][task] = {}
-
         build_json[CONTENT_MOD_STRING][module_dict_value][EXPORT_TASKS] = task_task_exports
         build_json[CONTENT_MOD_STRING][module_dict_value][TASK_DESC] = question_data
         for tasks in task_task_exports:
@@ -303,7 +421,8 @@ def compile_package_data(package_export_name: str,
     compile_export_package(f"{package_path}", input_package_export_name)
 
 
-def compile_export_package(compile_dict: str, package_export_name: str):
+def compile_export_package(compile_dict: str,
+                           package_export_name: str):
     current_path = getcwd()
     chdir(current_path)
     chdir(compile_dict)
@@ -314,7 +433,13 @@ def compile_export_package(compile_dict: str, package_export_name: str):
                 chdir(content_path)
                 tar_file = tarfile.open(f"{path_value}.tar.gz", mode='w:gz')
                 chdir(f"{path_value}")
-                tar_file.add("attachments")
+                attachments_true = None
+                count = 0
+                for items in glob("attachments/"):
+                    count += 1
+                if count > 1:
+                    if attachments_true:
+                        tar_file.add("attachments")
                 tar_file.close()
                 chdir(content_path)
                 rmtree(path_value)
@@ -411,7 +536,7 @@ class PackageExport:
             self.description = get_value('description', raw_data)['description']
 
     def to_dict(self):
-        """Return dictionary object type for to{DIR_CHARACTER}from dict formatting."""
+        """Return dictionary object type for to/from dict formatting."""
         data = {
             ENROLLMENT_TYPE: self.enrollment_type,
             STAT_S: self.status,
@@ -434,7 +559,7 @@ class PackageExport:
         return data
 
     def to_yml(self):
-        """Return dictionary object type for to{DIR_CHARACTER}from
+        """Return dictionary object type for to/from
          dict formatting."""
         description = ""
         if self.description:
@@ -470,23 +595,32 @@ class AnswerKey:
         else:
             self.question = None
         self.title = get_value("title", raw_data)["title"]
-        self.vm_keys = get_value("vmKeys", raw_data)["vmKeys"]
+        vm_key = get_value("vmKeys", raw_data)
+        if len(vm_key) > 0:
+            self.vm_keys = get_value("vmKeys", raw_data)['vmKeys']
+        else:
+            self.vm_keys = []
+        self.attachment_data = []
         for values in attachment_data:
-            if values == task:
+            if values == task and len(attachment_data[values]) > 0:
                 self.attachment_data = attachment_data[values]
+            elif values == task:
+                self.attachment_data = []
         self.task_id = task
 
     def to_yml(self):
         """Return dictionary object type for to/from
          dict formatting."""
         yml_out = ""
+        title_string = self.title.replace('"', "\\\"")
+        yml_out += f"\"{title_string}\": \n"
         if self.question:
-            yml_out += f"type: {self.question['type']}\n"
-            yml_out += f"mappingtags: {self.question['mappingTags']}\n"
-            yml_out += f"extradata: {self.question['extraData']}\n"
-            yml_out += f"pointtotal: {self.question['points']}\n"
-            yml_out += f"retrycount: {self.question['retryCount']}\n"
-            answer_data = "answers: \n"
+            yml_out += f"  type: {self.question['type']}\n"
+            yml_out += f"  mappingtags: {self.question['mappingTags']}\n"
+            yml_out += f"  extradata: {self.question['extraData']}\n"
+            yml_out += f"  pointtotal: {self.question['points']}\n"
+            yml_out += f"  retrycount: {self.question['retryCount']}\n"
+            answer_data = "  answers: \n"
             correct_list = []
             incorrect_list = []
             for answers in self.question["choices"]:
@@ -495,49 +629,52 @@ class AnswerKey:
                 elif answers["correct"] is False:
                     incorrect_list.append(answers['value'])
             if correct_list:
-                answer_data += f"  correct:\n"
+                answer_data += f"    correct:\n"
                 for item in correct_list:
                     safe_item = item.replace('"', "'")
                     safe_item = safe_item.replace("\\", "\\\\")
-                    answer_data += f"  - \"{safe_item}\" \n"
+                    answer_data += f"    - \"{safe_item}\" \n"
 
             if incorrect_list:
-                answer_data += f"  incorrect:\n"
+                answer_data += f"    incorrect:\n"
                 for item in incorrect_list:
                     safe_item = item.replace('"', "'")
                     safe_item = safe_item.replace("\\", "\\\\")
-                    answer_data += f"  - \"{safe_item}\" \n"
+                    answer_data += f"    - \"{safe_item}\" \n"
             yml_out += answer_data
             hint_number = 0
             if "hints" in self.question:
                 if len(self.question["hints"]) > 0:
                     hints_data = ""
-                    hints_data += f"hints:\n"
+                    hints_data += f"  hints:\n"
                     for hints in self.question["hints"]:
                         hint_number += 1
-                        hints_data += f"  {str(hint_number)}: \n    cost: {hints['pointsDeduction']}\n"
+                        hints_data += f"    {str(hint_number)}: \n      cost: {hints['pointsDeduction']}\n"
                         hint_text = hints['text'].replace('\n', "\n       ")
                         hint_text = hint_text.replace('"', "\\\"")
-                        hints_data += f"    message: \"{hint_text}\" \n"
+                        hints_data += f"      message: \"{hint_text}\" \n"
                     yml_out += hints_data
-        title_string = self.title.replace('"', "\\\"")
-        yml_out += f"title: \"{title_string}\" \n"
         if len(self.vm_keys) > 0:
-            keys_vm = "vmKeys:\n"
+            keys_vm = "  vmKeys:\n"
             for items in self.vm_keys:
-                keys_vm += f"  {items['val']}: \n    ID: \"{items['key']['repetitionGroup']}\"" \
-                           f"\n    index: {items['key']['index']}\n"
-            yml_out += f"{keys_vm}\n"
+                keys_vm += f"    \"{items['val']}\": \n      ID: \"{items['key']['repetitionGroup']}\"" \
+                           f"\n      index: {items['key']['index']}\n"
+            yml_out += f"{keys_vm}"
+        else:
+            yml_out += "  vmKeys: [] \n"
+
         attachment_list = []
-        for attachment in self.attachment_data:
-            attachment_value = self.attachment_data[attachment]
-            if isinstance(attachment_value, dict):
-                attachment_list.append(attachment_value['attachmentMetaName'])
-        yml_out += f"attachments: {attachment_list}\n"
+        if len(self.attachment_data) > 0:
+            for attachment in self.attachment_data:
+                attachment_value = self.attachment_data[attachment]
+                if isinstance(attachment_value, dict):
+                    attachment_list.append(attachment_value['attachmentMetaName'])
+        yml_out += f"  attachments: {attachment_list}\n"
+        yml_out += "\n"
         return yml_out
 
 
-def extract_all(archives, extract_path):
+def extract_all(archives: str, extract_path: str):
     tar = tarfile.open(archives, "r:gz")
     tar.extractall(path=extract_path)
     remove(f"{extract_path}{DIR_CHARACTER}package_export.json")
@@ -612,7 +749,7 @@ class ModuleExportContentModule:
         return data
 
     def to_yml(self):
-        """Return dictionary object type for to{DIR_CHARACTER}from
+        """Return dictionary object type for to/from
          dict formatting."""
         yml_out = ""
         yml_out += f"description: \"{str(self.description)}\"\n"
@@ -629,7 +766,7 @@ class ModuleExportContentModule:
         for items in self.questions:
             count = len(items)
             for value in items:
-                value_string = strip_unsafe_file_names(value['val']['title'])
+                value_string = value['val']['title']
                 if count > 1:
                     value_list.append(value_string)
                 else:

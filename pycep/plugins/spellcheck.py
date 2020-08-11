@@ -19,7 +19,7 @@ def custom_lis(custom_list):
     """--custom_list help=Custom Word List Path Directory"""
 
 
-def sentiment_analyzer(input_data) -> None:
+def sentiment_analyzer(input_data: dict) -> None:
     """Check package for spelling errors."""
     nltk.download('vader_lexicon')
     info("Processing tasks with sentimentanalyzer plugin now!")
@@ -67,7 +67,10 @@ def spellcheck(input_data: dict,
             spell_check_task(spell, lines, values, package)
 
 
-def spell_check_task(spell, line: dict, titles: str, package: str) -> None:
+def spell_check_task(spell,
+                     line: dict,
+                     titles: str,
+                     package: str) -> None:
     for line_number in line:
         item = line[line_number]
         words = spell.split_words(item)
