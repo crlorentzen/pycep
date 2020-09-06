@@ -3581,7 +3581,7 @@ T0947:
 T0013:
   mappingTagType: "task" 
   mappingTagDescription: 
-    "Apply coding and testing standards, apply security testing tools including "'fuzzing" static-analysis code scanning tools, and conduct code reviews." 
+    "Apply coding and testing standards, apply security testing tools including \"fuzzing\" static-analysis code scanning tools, and conduct code reviews."
 T0156:
   mappingTagType: "task" 
   mappingTagDescription: 
