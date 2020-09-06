@@ -504,7 +504,7 @@ def get_value(item: str, json_package: dict) -> dict:
 class PackageExport:
     def __init__(self, raw_data):
         self.enrollment_type = get_value(ENROLLMENT_TYPE, raw_data)[ENROLLMENT_TYPE]
-        self.status = get_value(STAT_S, raw_data)[STAT_S]
+        self.status = get_value(STAT_P, raw_data)[STAT_P]
         objective = get_value('objective', raw_data)
         if 'objective' in objective:
             self.objective = get_value('objective', raw_data)['objective']
@@ -514,7 +514,6 @@ class PackageExport:
         self.randomized_questions = get_value(RANDOM_QUESTIONS, raw_data)[RANDOM_QUESTIONS]
         self.self_enroll_enabled = get_value(SELF_ENROLLMENT, raw_data)[SELF_ENROLLMENT]
         self.leaderboard_enabled = get_value(LEADERBOARD, raw_data)[LEADERBOARD]
-        self.image = get_value('image', raw_data)['image']
         self.tool = get_value('tool', raw_data)['tool']
         self.url_value = get_value('url', raw_data)['url']
         resources = get_value('resources', raw_data)['resources']
@@ -534,14 +533,44 @@ class PackageExport:
         description = get_value('description', raw_data)['description']
         if description:
             self.description = get_value('description', raw_data)['description']
+        work_roles = get_value('workRoles', raw_data)['workRoles']
+        if work_roles:
+            self.work_roles = work_roles
+        else:
+            self.work_roles = []
+        event_roles = get_value('eventRoles', raw_data)['eventRoles']
+        if event_roles:
+            self.event_roles = event_roles
+        else:
+            self.event_roles = []
+        content_class = get_value(C_CLASS, raw_data)[C_CLASS]
+        if content_class:
+            self.content_class = content_class
+        else:
+            self.content_class = []
+        platform_roles = get_value(P_ROLES, raw_data)[P_ROLES]
+        if platform_roles:
+            self.platform_roles = platform_roles
+        else:
+            self.platform_roles = []
+        publisher = get_value(P_STR, raw_data)[P_STR]
+        if publisher:
+            self.publisher = publisher
+        else:
+            self.publisher = ""
+        topics = get_value(TOPICS_STR, raw_data)[TOPICS_STR]
+        if topics:
+            self.topics = topics
+        else:
+            self.topics = []
 
     def to_dict(self):
         """Return dictionary object type for to/from dict formatting."""
         data = {
             ENROLLMENT_TYPE: self.enrollment_type,
+            P_STR: self.publisher,
             STAT_S: self.status,
             'objective': self.objective,
-            'image': self.image,
             'tool': self.tool,
             'url': self.url_value,
             'resources': self.resources,
@@ -554,7 +583,13 @@ class PackageExport:
             REVEAL_ANSWERS: self.reveal_answers,
             EVENT_TIME: self.event_time_limit,
             RANDOM_QUESTIONS: self.randomized_questions,
-            LEADERBOARD: self.leaderboard_enabled
+            LEADERBOARD: self.leaderboard_enabled,
+            'workRoles': self.work_roles,
+            'eventRoles': self.event_roles,
+            C_CLASS: self.content_class,
+            P_ROLES: self.platform_roles,
+            TOPICS_STR: self.topics
+
         }
         return data
 
@@ -569,11 +604,11 @@ class PackageExport:
             content_mods += f"  - \"{item}\"\n"
         yml_out = f"{ENROLLMENT_TYPE}: '{self.enrollment_type}'\n" \
                   f"{STAT_S}: '{self.status}'\n" \
+                  f"{P_STR}: '{self.publisher}'\n" \
                   f"owner: '{self.owner}'\n" \
                   f"{N_STR}:  '{self.name_value}'\n" \
                   f"objective: {self.objective}\n" \
                   f"url:  '{self.url_value}'\n" \
-                  f"image: '{self.image}'\n" \
                   f"{SELF_ENROLLMENT}: {self.self_enroll_enabled}\n" \
                   f"tool:  '{self.tool}'\n" \
                   f"{RANDOM_QUESTIONS}: {self.randomized_questions}\n" \
@@ -583,7 +618,13 @@ class PackageExport:
                   f"difficulty:  '{self.difficulty}'\n" \
                   f"description:  \"{description}\"\n" \
                   f"{REVEAL_ANSWERS}: {self.reveal_answers}\n" \
-                  f"{EVENT_TIME}: {str(self.event_time_limit)}\n"
+                  f"{EVENT_TIME}: {str(self.event_time_limit)}\n" \
+                  f"{'workRoles'}: {self.work_roles}\n" \
+                  f"{'eventRoles'}: {self.event_roles}\n" \
+                  f"{C_CLASS}: {self.content_class}\n" \
+                  f"{P_ROLES}: {self.platform_roles}\n" \
+                  f"{TOPICS_STR}: {self.topics}\n"
+
         return yml_out
 
 

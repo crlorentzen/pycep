@@ -104,7 +104,10 @@ def render_list_item(task_line: dict,
     """Return formatted list data."""
     raw_list_data = ""
     for node in task_line:
-        raw_list_data += f"{heading_level}{node[TXT]}"
+        if TXT in node:
+            raw_list_data += f"{heading_level}{node[TXT]}"
+        elif D_STR in node:
+            raw_list_data += f"{heading_level}{node[D_STR]['url']}"
         if "## " in raw_list_data[2:]:
             test_data = raw_list_data[2:].replace("## ", "__")
             test_data = test_data.replace("##", "__")
