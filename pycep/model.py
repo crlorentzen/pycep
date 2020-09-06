@@ -2,6 +2,7 @@
 # coding=utf-8
 import platform
 import tarfile
+from base64 import b64encode
 from glob import glob
 from shutil import rmtree, move, Error
 from uuid import uuid4
@@ -134,6 +135,65 @@ def get_task_markdown_data(markdown_data: str,
             if task_file == 1 and line_data != BREAK_LINE:
                 task_data += line_data + "\n"
     return task_data
+
+
+def search_string(string_value, value_1, value_2):
+    start_string = ""
+    end_string = ""
+    middle_string = ""
+    start_true = True
+    end_true = False
+    middle_true = False
+    for character in string_value:
+        if value_1 == character:
+            start_true = False
+            middle_true = True
+        elif value_2 == character:
+            middle_true = False
+            end_true = True
+        elif start_true:
+            start_string += character
+        elif middle_true:
+            middle_string += character
+        elif end_true:
+            end_string += character
+
+    return start_string, middle_string, end_string
+
+
+def render_link_chunk(task_list_items, line_data, star_list, code_list):
+    line_chunks = search_string(line_data, "<", ">")
+    for line_chunk_value in line_chunks:
+        line_chunk = line_chunk_value[:4]
+        if line_chunk == "### ":
+            task_list_items.append(build_node_package([build_text_line(line_data[4:])], "heading-two"))
+
+        elif line_chunk == "   -":
+            star_list.append(build_node_package([build_node_package([build_text_line(line_data[5:])],
+                                                                "list-item-child")], "list-item"))
+        elif line_chunk == "   *":
+            star_list.append(build_node_package([build_node_package([build_text_line(line_data[5:])],
+                                                                "list-item-child")], "list-item"))
+        elif line_chunk == "    ":
+            code_list.append(build_node_package([build_text_line(f"{line_data[4:]}\r")], "code-line"))
+        elif line_chunk[:-1] == "## ":
+            task_list_items.append(build_node_package([build_text_line(line_data[3:])], "heading-one"))
+        elif line_chunk[:-2] == "**":
+            task_list_items.append(build_node_package([build_text_line(line_data[2:-2])], "bold"))
+        elif line_chunk[:-2] == "![":
+            image_data = build_node_package([build_text_line("")], "image-block")
+            image_data["data"] = {"imageData": line_data[10:-1]}
+            task_list_items.append(image_data)
+        elif len(code_list) > 0:
+            task_list_items.append(build_node_package(code_list, "code-block"))
+            code_list = []
+        elif len(star_list) > 0:
+            task_list_items.append(build_node_package(star_list, "unordered-list"))
+            star_list = []
+        elif len(line_data) > 0:
+            task_list_items.append(build_node_package(build_mark(line_data), "paragraph"))
+
+        return line_chunk, task_list_items, line_data, star_list, code_list
 
 
 def compile_package_data(package_export_name: str,
@@ -373,6 +433,8 @@ def compile_package_data(package_export_name: str,
                 line_chunk = line_data[:4]
                 if line_chunk[:-2] == "# ":
                     info("Processing task Title ")
+                elif ("<" and ">") in line_data:
+                    render_link_chunk(task_list_items, line_data, star_list, code_list)
                 elif line_chunk == "### ":
                     task_list_items.append(build_node_package([build_text_line(line_data[4:])], "heading-two"))
                 elif line_chunk == "   -":
@@ -390,7 +452,10 @@ def compile_package_data(package_export_name: str,
 
                 elif line_chunk[:-2] == "![":
                     image_data = build_node_package([build_text_line("")], "image-block")
-                    image_data["data"] = {"imageData": line_data[10:-1]}
+                    picture_path = f"{input_dir}{DIR_CHARACTER}{line_data[12:-1]}"
+                    with open(picture_path, 'rb') as picture_file:
+                        raw_picture = b64encode(picture_file.read()).decode('utf-8')
+                    image_data["data"] = {"imageData": raw_picture}
                     task_list_items.append(image_data)
                 elif len(code_list) > 0:
                     task_list_items.append(build_node_package(code_list, "code-block"))
@@ -569,7 +634,7 @@ class PackageExport:
         data = {
             ENROLLMENT_TYPE: self.enrollment_type,
             P_STR: self.publisher,
-            STAT_S: self.status,
+            STAT_P: self.status,
             'objective': self.objective,
             'tool': self.tool,
             'url': self.url_value,
@@ -603,7 +668,7 @@ class PackageExport:
         for item in self.content_modules:
             content_mods += f"  - \"{item}\"\n"
         yml_out = f"{ENROLLMENT_TYPE}: '{self.enrollment_type}'\n" \
-                  f"{STAT_S}: '{self.status}'\n" \
+                  f"{STAT_P}: '{self.status}'\n" \
                   f"{P_STR}: '{self.publisher}'\n" \
                   f"owner: '{self.owner}'\n" \
                   f"{N_STR}:  '{self.name_value}'\n" \
