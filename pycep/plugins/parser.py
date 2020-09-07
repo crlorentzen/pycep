@@ -27,7 +27,7 @@ def get_task_data(package_export_content_modules: dict,
         task_title = render_task_name(package_export_content_modules, values, task_item)
         if D_STR in content_data_node[task_item]:
             check_dic = content_data_node[task_item][D_STR][DOC_STR][NODES]
-            render_task_data = render_task(check_dic)
+            render_task_data = render_task(check_dic, "/tmp/")
             if render_task_data:
                 raw_data += f"# {task_title}{render_task_data}{NEW_LINE}"
     return raw_data, package_name
@@ -256,12 +256,12 @@ def render_task(task_dict: dict,
                         raw_task_data += raw_heading_data
                 elif 'image-block' in task_line[TYPE_STRING]:
                     picture_id = id_generator()
-                    file_name = f"{output}{DIR_CHARACTER}/media/{picture_id}.png"
+                    file_name = f"{output}{DIR_CHARACTER}{DIR_CHARACTER}media{DIR_CHARACTER}{picture_id}.png"
                     with open(file_name, 'wb') as picture_file:
                         test = task_line[D_STR]['imageData'][22:].encode('utf-8')
                         test2 = standard_b64decode(test)
                         picture_file.write(test2)
-                    raw_heading_data = f"![{picture_id}](../media/{picture_id}.png)"
+                    raw_heading_data = f"![](..{DIR_CHARACTER}media{DIR_CHARACTER}{picture_id}.png)"
                     if raw_heading_data:
                         raw_task_data += raw_heading_data
                 elif 'code-block' in task_line[TYPE_STRING]:
@@ -325,6 +325,7 @@ def parser(raw_data: dict,
     file_name = f"{strip_unsafe_file_names(main_package_data[N_STR].strip(' '))}{YAML_EXT}"
     raw_data[PACKAGE_STR][CONTENT_MODS] = package_data
     package_yml = PackageExport(raw_data[PACKAGE_STR]).to_yml()
+    _initialize_dir(output)
     write_to_file(f"{output}{DIR_CHARACTER}{file_name}", package_yml)
     media_path = f"{output}{DIR_CHARACTER}media"
     _initialize_dir(media_path)
