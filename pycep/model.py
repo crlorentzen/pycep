@@ -23,7 +23,9 @@ NEW_LINE = "\n"
 
 
 def build_node_type(node_type):
-    return {"data": {}, "object": "mark", "type": node_type}
+    return {"data": {},
+            "object": "mark",
+            "type": node_type}
 
 
 def build_text_line(line_data):
@@ -92,7 +94,6 @@ def build_mark(line_data):
                             new_string = ""
                         else:
                             new_string += f"{item} "
-        #new_string += f"{item} "
     mark_list.append(build_text_line(new_string))
     return mark_list
 
@@ -107,6 +108,7 @@ def build_node_package(nodes_data: list, data_type: str):
 
 
 def path_builder(build_path, delete):
+    """Create directory with build_path variable."""
     try:
         mkdir(build_path)
     except FileExistsError:
@@ -121,6 +123,7 @@ def path_builder(build_path, delete):
 
 def get_task_markdown_data(markdown_data: str,
                            task: str):
+    """Return task data from markdown structure."""
     task_data = ""
     task_file = 0
     for line_data in markdown_data.splitlines():
@@ -138,6 +141,7 @@ def get_task_markdown_data(markdown_data: str,
 
 
 def search_string(string_value, value_1, value_2):
+    """Return search list result."""
     start_string = ""
     end_string = ""
     middle_string = ""
@@ -165,6 +169,7 @@ def search_string(string_value, value_1, value_2):
 
 
 def render_link_chunk(task_list_items, line_data, star_list, code_list):
+    """Return formatted line chunk for a task."""
     line_chunks = search_string(line_data, "<", ">")
     count = 0
     for line_chunk_value in line_chunks:
@@ -209,6 +214,7 @@ def render_link_chunk(task_list_items, line_data, star_list, code_list):
 def compile_package_data(package_export_name: str,
                          input_dir: str,
                          export_dir: str):
+    """Compile export package with input package/module directory."""
     package_dir = input_dir
     dir_paths = package_dir.split(f"{DIR_CHARACTER}")
     total_length = len(dir_paths)
@@ -443,7 +449,6 @@ def compile_package_data(package_export_name: str,
                 line_chunk = line_data[:4]
                 if line_chunk[:-2] == "# ":
                     info("Processing task Title ")
-                ##task_list_items, line_data, star_list, code_list = render_link_chunk(task_list_items, line_data, star_list, code_list)
                 elif line_chunk == "### ":
                     task_list_items.append(build_node_package([build_text_line(line_data[4:])], "heading-two"))
                 elif line_chunk == "   -":
@@ -458,10 +463,9 @@ def compile_package_data(package_export_name: str,
                     task_list_items.append(build_node_package([build_text_line(line_data[3:])], "heading-one"))
                 elif line_chunk[:-2] == "**":
                     task_list_items.append(build_node_package([build_text_line(line_data[2:-2])], "bold"))
-
                 elif line_chunk[:-2] == "![":
                     image_data = build_node_package([build_text_line("")], "image-block")
-                    picture_path = f"{input_dir}{line_data[12:-1]}"
+                    picture_path = f"{input_dir}{DIR_CHARACTER}media{line_data[12:-1]}"
                     with open(picture_path, 'rb') as picture_file:
                         raw_picture = b64encode(picture_file.read()).decode('utf-8')
                     image_data["data"] = {"imageData": f"data:image/png;base64,{raw_picture}"}
@@ -579,6 +583,7 @@ def get_value(item: str, json_package: dict) -> dict:
 
 
 class PackageExport:
+    """Package object class to manage package data."""
     def __init__(self, raw_data):
         self.enrollment_type = get_value(ENROLLMENT_TYPE, raw_data)[ENROLLMENT_TYPE]
         self.status = get_value(STAT_P, raw_data)[STAT_P]
@@ -706,6 +711,7 @@ class PackageExport:
 
 
 class AnswerKey:
+    """Question object class to manage answers, hints and points."""
     def __init__(self, raw_data, attachment_data, task):
         question_query = get_value("question", raw_data)
         if question_query:
@@ -793,6 +799,7 @@ class AnswerKey:
 
 
 def extract_all(archives: str, extract_path: str):
+    """Extract archive file to input path."""
     tar = tarfile.open(archives, "r:gz")
     tar.extractall(path=extract_path)
     remove(f"{extract_path}{DIR_CHARACTER}package_export.json")
@@ -810,7 +817,8 @@ def extract_all(archives: str, extract_path: str):
     except FileExistsError:
         rmtree(attachment_dir)
         mkdir(attachment_dir)
-    for file_name in glob(f"{extract_path}{DIR_CHARACTER}attachment{DIR_CHARACTER}attachments{DIR_CHARACTER}*{DIR_CHARACTER}*"):
+    for file_name in \
+            glob(f"{extract_path}{DIR_CHARACTER}attachment{DIR_CHARACTER}attachments{DIR_CHARACTER}*{DIR_CHARACTER}*"):
         try:
             move(file_name, f"{extract_path}{DIR_CHARACTER}attachments{DIR_CHARACTER}")
         except Error:

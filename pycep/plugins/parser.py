@@ -4,13 +4,11 @@ import re
 import random
 import string
 from base64 import standard_b64decode
-from os import mkdir
-from shutil import rmtree
 from logging import info, error
 from yaml_info.yamlinfo import YamlInfo
 from pycep.render import write_to_file
 from pycep.model import get_value, strip_unsafe_file_names, strip_end_space, h_one_format, DIR_CHARACTER, \
-    ModuleExportContentModule, AnswerKey, PackageExport, extract_tar_data, get_task_markdown_data
+    ModuleExportContentModule, AnswerKey, PackageExport, extract_tar_data, get_task_markdown_data, path_builder
 from pycep.content_strings import *
 
 
@@ -58,6 +56,7 @@ def return_non_data_task(input_data: dict) -> dict:
 def render_task_name(package_export_content_modules: dict,
                      values: str,
                      task_item: str):
+    """Return task title."""
     task_title = None
     if EXPORT_TASKS in package_export_content_modules[values]:
         task_title = package_export_content_modules[values][EXPORT_TASKS][task_item]['title']
@@ -98,6 +97,7 @@ def get_task_data_listed(package_export_content_modules: dict,
 
 
 def id_generator(size=6, chars=string.ascii_lowercase):
+    """Return random 6 character string."""
     return ''.join(random.choice(chars) for _ in range(size))
 
 
@@ -163,6 +163,7 @@ def render_nested_list_nodes(task_line: dict,
 def render_paragraph_data(paragraph_item: dict,
                           count: int,
                           task_line: dict):
+    """Return paragraph data from task content."""
     raw_task_data = ""
     if "marks" in paragraph_item and len(paragraph_item[M_STR]) > 0:
         item_type = paragraph_item[M_STR][0][TYPE_STRING]
@@ -280,6 +281,7 @@ def render_task(task_dict: dict,
 
 
 def get_package_data(package_export_content_modules: dict):
+    """Return package list."""
     package_list = []
     for module in package_export_content_modules:
         pck_name = strip_unsafe_file_names(package_export_content_modules[module][EXPORT_MOD_STRING]['name'])
@@ -288,6 +290,7 @@ def get_package_data(package_export_content_modules: dict):
 
 
 def yml_format_str(answer_data, task_item, attachment_data):
+    """Return yaml formatted data from input dictionary."""
     task_answer_key = None
     for title in answer_data.items():
         search_title = title[1]['title']
@@ -299,20 +302,13 @@ def yml_format_str(answer_data, task_item, attachment_data):
 
 
 def package_export_package_info(raw_data: dict):
+    """Return package data."""
     package_dict = PackageExport(raw_data[PACKAGE_STR])
     package_data = {}
     for data_value, value in package_dict.to_dict().items():
         if value:
             package_data[data_value] = value
     return package_data
-
-
-def _initialize_dir(dir_path):
-    try:
-        mkdir(dir_path)
-    except FileExistsError:
-        rmtree(dir_path)
-        mkdir(dir_path)
 
 
 def parser(raw_data: dict,
@@ -325,10 +321,10 @@ def parser(raw_data: dict,
     file_name = f"{strip_unsafe_file_names(main_package_data[N_STR].strip(' '))}{YAML_EXT}"
     raw_data[PACKAGE_STR][CONTENT_MODS] = package_data
     package_yml = PackageExport(raw_data[PACKAGE_STR]).to_yml()
-    _initialize_dir(output)
+    path_builder(output, True)
     write_to_file(f"{output}{DIR_CHARACTER}{file_name}", package_yml)
     media_path = f"{output}{DIR_CHARACTER}media"
-    _initialize_dir(media_path)
+    path_builder(media_path, True)
     extract_tar_data(input_file, output)
     for values in package_export_content_modules:
         raw_task_data = get_task_data_listed(package_export_content_modules, values, output)
@@ -338,8 +334,7 @@ def parser(raw_data: dict,
         for package in raw_task_data:
             package_name_value = strip_unsafe_file_names(package)
             package_path = f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}"
-
-            _initialize_dir(package_path)
+            path_builder(package_path, True)
             write_to_file(f"{package_path}module.yml",
                           ModuleExportContentModule(package_export_content_modules[values]).to_yml())
             module_task_yml = ""
@@ -362,7 +357,8 @@ def parser(raw_data: dict,
                     if isinstance(tasks, list):
                         for task in tasks:
                             fixed_order += f"# {task}{NEW_LINE}"
-                            fixed_order += f"{get_task_markdown_data(ordered_markdown_data, task)}{BREAK_LINE}{NEW_LINE}"
+                            fixed_order += \
+                                f"{get_task_markdown_data(ordered_markdown_data, task)}{BREAK_LINE}{NEW_LINE}"
                     else:
                         fixed_order += f"# {tasks}{NEW_LINE}"
                         fixed_order += f"{get_task_markdown_data(ordered_markdown_data, tasks)}{BREAK_LINE}{NEW_LINE}"
