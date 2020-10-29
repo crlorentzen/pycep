@@ -11,7 +11,6 @@ def write_to_file(input_file_name: str, string_data: str) -> None:
     try:
         with open(input_file_name, 'w') as output_file:
             output_file.write(string_data)
-
     except UnicodeEncodeError:
         with open(input_file_name, 'wb') as output_file:
             output_file.write(string_data.encode('utf-8'))

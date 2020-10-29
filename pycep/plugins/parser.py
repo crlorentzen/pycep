@@ -3,13 +3,12 @@
 import re
 import random
 import string
-from os import mkdir
-from shutil import rmtree
+from base64 import standard_b64decode
 from logging import info, error
 from yaml_info.yamlinfo import YamlInfo
 from pycep.render import write_to_file
 from pycep.model import get_value, strip_unsafe_file_names, strip_end_space, h_one_format, DIR_CHARACTER, \
-    ModuleExportContentModule, AnswerKey, PackageExport, extract_tar_data, get_task_markdown_data
+    ModuleExportContentModule, AnswerKey, PackageExport, extract_tar_data, get_task_markdown_data, path_builder
 from pycep.content_strings import *
 
 
@@ -26,7 +25,7 @@ def get_task_data(package_export_content_modules: dict,
         task_title = render_task_name(package_export_content_modules, values, task_item)
         if D_STR in content_data_node[task_item]:
             check_dic = content_data_node[task_item][D_STR][DOC_STR][NODES]
-            render_task_data = render_task(check_dic)
+            render_task_data = render_task(check_dic, "/tmp/")
             if render_task_data:
                 raw_data += f"# {task_title}{render_task_data}{NEW_LINE}"
     return raw_data, package_name
@@ -57,6 +56,7 @@ def return_non_data_task(input_data: dict) -> dict:
 def render_task_name(package_export_content_modules: dict,
                      values: str,
                      task_item: str):
+    """Return task title."""
     task_title = None
     if EXPORT_TASKS in package_export_content_modules[values]:
         task_title = package_export_content_modules[values][EXPORT_TASKS][task_item]['title']
@@ -67,7 +67,8 @@ def render_task_name(package_export_content_modules: dict,
 
 
 def get_task_data_listed(package_export_content_modules: dict,
-                         values: str):
+                         values: str,
+                         output: str):
     """Return raw data from package and package name."""
     package_value = package_export_content_modules[values][EXPORT_MOD_STRING]
     package_name = package_value[N_STR]
@@ -79,7 +80,7 @@ def get_task_data_listed(package_export_content_modules: dict,
         if content_data_node[task_item]:
             if D_STR in content_data_node[task_item]:
                 check_dic = content_data_node[task_item][D_STR][DOC_STR][NODES]
-                render_task_data = render_task(check_dic)
+                render_task_data = render_task(check_dic, output)
                 if render_task_data:
                     raw_data_dict[package_name][task_title] = render_task_data
     task_data_node = package_export_content_modules[values][TASK_DESC]
@@ -89,13 +90,14 @@ def get_task_data_listed(package_export_content_modules: dict,
         if task_data_node[task_item]:
             if D_STR in task_data_node[task_item]:
                 check_dic = task_data_node[task_item][D_STR][DOC_STR][NODES]
-                render_task_data = render_task(check_dic)
+                render_task_data = render_task(check_dic, output)
                 if render_task_data:
                     raw_data_dict[package_name][task_title] = render_task_data
     return raw_data_dict
 
 
 def id_generator(size=6, chars=string.ascii_lowercase):
+    """Return random 6 character string."""
     return ''.join(random.choice(chars) for _ in range(size))
 
 
@@ -137,7 +139,22 @@ def render_nested_list_nodes(task_line: dict,
                 else:
                     if TXT in nested_node[NODES][0]:
                         if list_type is UNORDERED_STR:
-                            raw_list_data += f"   * {nested_node[NODES][0][TXT]}{NEW_LINE}"
+                            test = nested_node[NODES][0][TXT]
+                            if test:
+                                raw_list_data += f"   * {nested_node[NODES][0][TXT]}{NEW_LINE}"
+                            else:
+                                new_list = ""
+                                for items in nested_node[NODES]:
+                                    if TXT in items:
+                                        new_list += items[TXT]
+                                    else:
+                                        nested_list_item = items[NODES][0][TXT]
+                                        if "url" in items[D_STR]:
+                                            add_value = f"<{nested_list_item}>"
+                                        else:
+                                            add_value = nested_list_item
+                                        new_list += add_value
+                                raw_list_data += f"   * {new_list}{NEW_LINE}"
                         elif list_type is ORDERED_STR:
                             raw_list_data += f"{str(order_count)}. {nested_node[NODES][0][TXT]}{NEW_LINE}"
     return raw_list_data
@@ -146,6 +163,7 @@ def render_nested_list_nodes(task_line: dict,
 def render_paragraph_data(paragraph_item: dict,
                           count: int,
                           task_line: dict):
+    """Return paragraph data from task content."""
     raw_task_data = ""
     if "marks" in paragraph_item and len(paragraph_item[M_STR]) > 0:
         item_type = paragraph_item[M_STR][0][TYPE_STRING]
@@ -174,7 +192,8 @@ def render_paragraph_data(paragraph_item: dict,
     return raw_task_data
 
 
-def render_task(task_dict: dict):
+def render_task(task_dict: dict,
+                output: str):
     """Return string data from content module task data."""
     raw_task_data = ""
     if task_dict:
@@ -238,7 +257,12 @@ def render_task(task_dict: dict):
                         raw_task_data += raw_heading_data
                 elif 'image-block' in task_line[TYPE_STRING]:
                     picture_id = id_generator()
-                    raw_heading_data = f"![{picture_id}]({task_line[D_STR]['imageData']})"
+                    file_name = f"{output}{DIR_CHARACTER}{DIR_CHARACTER}media{DIR_CHARACTER}{picture_id}.png"
+                    with open(file_name, 'wb') as picture_file:
+                        test = task_line[D_STR]['imageData'][22:].encode('utf-8')
+                        test2 = standard_b64decode(test)
+                        picture_file.write(test2)
+                    raw_heading_data = f"![](..{DIR_CHARACTER}media{DIR_CHARACTER}{picture_id}.png)"
                     if raw_heading_data:
                         raw_task_data += raw_heading_data
                 elif 'code-block' in task_line[TYPE_STRING]:
@@ -257,6 +281,7 @@ def render_task(task_dict: dict):
 
 
 def get_package_data(package_export_content_modules: dict):
+    """Return package list."""
     package_list = []
     for module in package_export_content_modules:
         pck_name = strip_unsafe_file_names(package_export_content_modules[module][EXPORT_MOD_STRING]['name'])
@@ -265,6 +290,7 @@ def get_package_data(package_export_content_modules: dict):
 
 
 def yml_format_str(answer_data, task_item, attachment_data):
+    """Return yaml formatted data from input dictionary."""
     task_answer_key = None
     for title in answer_data.items():
         search_title = title[1]['title']
@@ -276,6 +302,7 @@ def yml_format_str(answer_data, task_item, attachment_data):
 
 
 def package_export_package_info(raw_data: dict):
+    """Return package data."""
     package_dict = PackageExport(raw_data[PACKAGE_STR])
     package_data = {}
     for data_value, value in package_dict.to_dict().items():
@@ -294,21 +321,20 @@ def parser(raw_data: dict,
     file_name = f"{strip_unsafe_file_names(main_package_data[N_STR].strip(' '))}{YAML_EXT}"
     raw_data[PACKAGE_STR][CONTENT_MODS] = package_data
     package_yml = PackageExport(raw_data[PACKAGE_STR]).to_yml()
+    path_builder(output, True)
     write_to_file(f"{output}{DIR_CHARACTER}{file_name}", package_yml)
+    media_path = f"{output}{DIR_CHARACTER}media"
+    path_builder(media_path, True)
     extract_tar_data(input_file, output)
     for values in package_export_content_modules:
-        raw_task_data = get_task_data_listed(package_export_content_modules, values)
+        raw_task_data = get_task_data_listed(package_export_content_modules, values, output)
         info("Processing tasks with compile plugin now!")
         attachment_data = package_export_content_modules[values][CONTENT_MOD_EXPORT_TASK_ATTACHMENTS]
         answer_data = package_export_content_modules[values][EXPORT_TASKS]
         for package in raw_task_data:
             package_name_value = strip_unsafe_file_names(package)
             package_path = f"{output}{DIR_CHARACTER}{package_name_value}{DIR_CHARACTER}"
-            try:
-                mkdir(package_path)
-            except FileExistsError:
-                rmtree(package_path)
-                mkdir(package_path)
+            path_builder(package_path, True)
             write_to_file(f"{package_path}module.yml",
                           ModuleExportContentModule(package_export_content_modules[values]).to_yml())
             module_task_yml = ""
@@ -331,7 +357,8 @@ def parser(raw_data: dict,
                     if isinstance(tasks, list):
                         for task in tasks:
                             fixed_order += f"# {task}{NEW_LINE}"
-                            fixed_order += f"{get_task_markdown_data(ordered_markdown_data, task)}{BREAK_LINE}{NEW_LINE}"
+                            fixed_order += \
+                                f"{get_task_markdown_data(ordered_markdown_data, task)}{BREAK_LINE}{NEW_LINE}"
                     else:
                         fixed_order += f"# {tasks}{NEW_LINE}"
                         fixed_order += f"{get_task_markdown_data(ordered_markdown_data, tasks)}{BREAK_LINE}{NEW_LINE}"

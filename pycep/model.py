@@ -2,6 +2,7 @@
 # coding=utf-8
 import platform
 import tarfile
+from base64 import b64encode
 from glob import glob
 from shutil import rmtree, move, Error
 from uuid import uuid4
@@ -22,7 +23,9 @@ NEW_LINE = "\n"
 
 
 def build_node_type(node_type):
-    return {"data": {}, "object": "mark", "type": node_type}
+    return {"data": {},
+            "object": "mark",
+            "type": node_type}
 
 
 def build_text_line(line_data):
@@ -91,7 +94,6 @@ def build_mark(line_data):
                             new_string = ""
                         else:
                             new_string += f"{item} "
-        #new_string += f"{item} "
     mark_list.append(build_text_line(new_string))
     return mark_list
 
@@ -106,6 +108,7 @@ def build_node_package(nodes_data: list, data_type: str):
 
 
 def path_builder(build_path, delete):
+    """Create directory with build_path variable."""
     try:
         mkdir(build_path)
     except FileExistsError:
@@ -120,6 +123,7 @@ def path_builder(build_path, delete):
 
 def get_task_markdown_data(markdown_data: str,
                            task: str):
+    """Return task data from markdown structure."""
     task_data = ""
     task_file = 0
     for line_data in markdown_data.splitlines():
@@ -136,9 +140,81 @@ def get_task_markdown_data(markdown_data: str,
     return task_data
 
 
+def search_string(string_value, value_1, value_2):
+    """Return search list result."""
+    start_string = ""
+    end_string = ""
+    middle_string = ""
+    start_true = True
+    end_true = False
+    middle_true = False
+    search_list = []
+    for character in string_value:
+        if value_1 == character:
+            start_true = False
+            middle_true = True
+        elif value_2 == character:
+            middle_true = False
+            end_true = True
+        elif start_true:
+            start_string += character
+        elif middle_true:
+            middle_string += character
+        elif end_true:
+            end_string += character
+    search_list.append(start_string)
+    search_list.append(middle_string)
+    search_list.append(end_string)
+    return search_list
+
+
+def render_link_chunk(task_list_items, line_data, star_list, code_list):
+    """Return formatted line chunk for a task."""
+    line_chunks = search_string(line_data, "<", ">")
+    count = 0
+    for line_chunk_value in line_chunks:
+        count += 1
+        line_chunk = line_chunk_value[:4]
+        if count == 2:
+            if len(line_chunk_value) > 0:
+                url_dict = {D_STR: {"url": line_chunk_value},
+                            "object": "inline",
+                            "type": "link",
+                            "nodes": build_mark(line_chunk_value)}
+                task_list_items[0]["nodes"].append(url_dict)
+        elif line_chunk == "### ":
+            task_list_items.append(build_node_package([build_text_line(line_chunk_value[4:])], "heading-two"))
+        elif line_chunk == "   -":
+            star_list.append(build_node_package([build_node_package([build_text_line(line_chunk_value[5:])],
+                                                                "list-item-child")], "list-item"))
+        elif line_chunk == "   *":
+            star_list.append(build_node_package([build_node_package([build_text_line(line_chunk_value[5:])],
+                                                                "list-item-child")], "list-item"))
+        elif line_chunk == "    ":
+            code_list.append(build_node_package([build_text_line(f"{line_chunk_value[4:]}\r")], "code-line"))
+        elif line_chunk[:-1] == "## ":
+            task_list_items.append(build_node_package([build_text_line(line_chunk_value[3:])], "heading-one"))
+        elif line_chunk[:-2] == "**":
+            task_list_items.append(build_node_package([build_text_line(line_chunk_value[2:-2])], "bold"))
+        elif line_chunk[:-2] == "![":
+            image_data = build_node_package([build_text_line("")], "image-block")
+            image_data["data"] = {"imageData": line_chunk_value[10:-1]}
+            task_list_items.append(image_data)
+        elif len(code_list) > 0:
+            task_list_items.append(build_node_package(code_list, "code-block"))
+            code_list = []
+        elif len(star_list) > 0:
+            task_list_items.append(build_node_package(star_list, "unordered-list"))
+            star_list = []
+        elif len(line_data) > 0:
+            task_list_items.append(build_node_package(build_mark(line_chunk_value), "paragraph"))
+    return task_list_items, line_data, star_list, code_list
+
+
 def compile_package_data(package_export_name: str,
                          input_dir: str,
                          export_dir: str):
+    """Compile export package with input package/module directory."""
     package_dir = input_dir
     dir_paths = package_dir.split(f"{DIR_CHARACTER}")
     total_length = len(dir_paths)
@@ -387,10 +463,12 @@ def compile_package_data(package_export_name: str,
                     task_list_items.append(build_node_package([build_text_line(line_data[3:])], "heading-one"))
                 elif line_chunk[:-2] == "**":
                     task_list_items.append(build_node_package([build_text_line(line_data[2:-2])], "bold"))
-
                 elif line_chunk[:-2] == "![":
                     image_data = build_node_package([build_text_line("")], "image-block")
-                    image_data["data"] = {"imageData": line_data[10:-1]}
+                    picture_path = f"{input_dir}{DIR_CHARACTER}media{line_data[12:-1]}"
+                    with open(picture_path, 'rb') as picture_file:
+                        raw_picture = b64encode(picture_file.read()).decode('utf-8')
+                    image_data["data"] = {"imageData": f"data:image/png;base64,{raw_picture}"}
                     task_list_items.append(image_data)
                 elif len(code_list) > 0:
                     task_list_items.append(build_node_package(code_list, "code-block"))
@@ -399,7 +477,10 @@ def compile_package_data(package_export_name: str,
                     task_list_items.append(build_node_package(star_list, "unordered-list"))
                     star_list = []
                 elif len(line_data) > 0:
-                    task_list_items.append(build_node_package(build_mark(line_data), "paragraph"))
+                    task_list_items, line_data, star_list, code_list = render_link_chunk(task_list_items,
+                                                                                         line_data,
+                                                                                         star_list,
+                                                                                         code_list)
             if len(code_list) > 0:
                 task_list_items.append(build_node_package(code_list, "code-block"))
             elif len(star_list) > 0:
@@ -502,6 +583,7 @@ def get_value(item: str, json_package: dict) -> dict:
 
 
 class PackageExport:
+    """Package object class to manage package data."""
     def __init__(self, raw_data):
         self.enrollment_type = get_value(ENROLLMENT_TYPE, raw_data)[ENROLLMENT_TYPE]
         self.status = get_value(STAT_P, raw_data)[STAT_P]
@@ -569,7 +651,7 @@ class PackageExport:
         data = {
             ENROLLMENT_TYPE: self.enrollment_type,
             P_STR: self.publisher,
-            STAT_S: self.status,
+            STAT_P: self.status,
             'objective': self.objective,
             'tool': self.tool,
             'url': self.url_value,
@@ -603,7 +685,7 @@ class PackageExport:
         for item in self.content_modules:
             content_mods += f"  - \"{item}\"\n"
         yml_out = f"{ENROLLMENT_TYPE}: '{self.enrollment_type}'\n" \
-                  f"{STAT_S}: '{self.status}'\n" \
+                  f"{STAT_P}: '{self.status}'\n" \
                   f"{P_STR}: '{self.publisher}'\n" \
                   f"owner: '{self.owner}'\n" \
                   f"{N_STR}:  '{self.name_value}'\n" \
@@ -629,6 +711,7 @@ class PackageExport:
 
 
 class AnswerKey:
+    """Question object class to manage answers, hints and points."""
     def __init__(self, raw_data, attachment_data, task):
         question_query = get_value("question", raw_data)
         if question_query:
@@ -716,6 +799,7 @@ class AnswerKey:
 
 
 def extract_all(archives: str, extract_path: str):
+    """Extract archive file to input path."""
     tar = tarfile.open(archives, "r:gz")
     tar.extractall(path=extract_path)
     remove(f"{extract_path}{DIR_CHARACTER}package_export.json")
@@ -733,7 +817,8 @@ def extract_all(archives: str, extract_path: str):
     except FileExistsError:
         rmtree(attachment_dir)
         mkdir(attachment_dir)
-    for file_name in glob(f"{extract_path}{DIR_CHARACTER}attachment{DIR_CHARACTER}attachments{DIR_CHARACTER}*{DIR_CHARACTER}*"):
+    for file_name in \
+            glob(f"{extract_path}{DIR_CHARACTER}attachment{DIR_CHARACTER}attachments{DIR_CHARACTER}*{DIR_CHARACTER}*"):
         try:
             move(file_name, f"{extract_path}{DIR_CHARACTER}attachments{DIR_CHARACTER}")
         except Error:
