@@ -409,7 +409,8 @@ def compile_package_data(package_export_name: str,
                                  }
                             file_safe_attachment = attachment.replace(" ", "%20")
                             try:
-                                read_file = f"{input_dir}{DIR_CHARACTER}attachments{DIR_CHARACTER}{file_safe_attachment}"
+                                read_file = \
+                                    f"{input_dir}{DIR_CHARACTER}attachments{DIR_CHARACTER}{file_safe_attachment}"
                                 with open(read_file, 'rb') \
                                         as module_file:
                                     module_data = module_file.read()
@@ -592,7 +593,6 @@ class PackageExport:
             self.objective = get_value('objective', raw_data)['objective']
         else:
             self.objective = []
-        self.reveal_answers = get_value(REVEAL_ANSWERS, raw_data)[REVEAL_ANSWERS]
         self.randomized_questions = get_value(RANDOM_QUESTIONS, raw_data)[RANDOM_QUESTIONS]
         self.self_enroll_enabled = get_value(SELF_ENROLLMENT, raw_data)[SELF_ENROLLMENT]
         self.leaderboard_enabled = get_value(LEADERBOARD, raw_data)[LEADERBOARD]
@@ -662,7 +662,6 @@ class PackageExport:
             'difficulty': self.difficulty,
             'description': self.description,
             SELF_ENROLLMENT: self.self_enroll_enabled,
-            REVEAL_ANSWERS: self.reveal_answers,
             EVENT_TIME: self.event_time_limit,
             RANDOM_QUESTIONS: self.randomized_questions,
             LEADERBOARD: self.leaderboard_enabled,
@@ -699,7 +698,6 @@ class PackageExport:
                   f"{content_mods}" \
                   f"difficulty:  '{self.difficulty}'\n" \
                   f"description:  \"{description}\"\n" \
-                  f"{REVEAL_ANSWERS}: {self.reveal_answers}\n" \
                   f"{EVENT_TIME}: {str(self.event_time_limit)}\n" \
                   f"{'workRoles'}: {self.work_roles}\n" \
                   f"{'eventRoles'}: {self.event_roles}\n" \
@@ -855,7 +853,7 @@ class ModuleExportContentModule:
         if tasks_data:
             self.questions = tasks_data[TASKS]
         self.duration = get_value('duration', export_tasks)['duration']
-        self.description = get_value('description', export_tasks)['description']
+        self.description = get_value('description', export_tasks)['description'].replace('"', "'")
 
     def to_dict(self):
         """Return dictionary object type for to{DIR_CHARACTER}from
