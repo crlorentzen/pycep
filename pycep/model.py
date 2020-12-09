@@ -645,6 +645,16 @@ class PackageExport:
             self.topics = topics
         else:
             self.topics = []
+        answer_feedback = get_value(ANSWER_FEEDBACK, raw_data)[ANSWER_FEEDBACK]
+        if answer_feedback:
+            self.answer_feedback = answer_feedback
+        else:
+            self.answer_feedback = {}
+        industry_sector = get_value(INDUSTRY_SECTOR, raw_data)[INDUSTRY_SECTOR]
+        if industry_sector:
+            self.industry_sector = industry_sector
+        else:
+            self.industry_sector = ''
 
     def to_dict(self):
         """Return dictionary object type for to/from dict formatting."""
@@ -669,7 +679,9 @@ class PackageExport:
             'eventRoles': self.event_roles,
             C_CLASS: self.content_class,
             P_ROLES: self.platform_roles,
-            TOPICS_STR: self.topics
+            TOPICS_STR: self.topics,
+            ANSWER_FEEDBACK: self.answer_feedback,
+            INDUSTRY_SECTOR: self.industry_sector
 
         }
         return data
@@ -703,7 +715,9 @@ class PackageExport:
                   f"{'eventRoles'}: {self.event_roles}\n" \
                   f"{C_CLASS}: {self.content_class}\n" \
                   f"{P_ROLES}: {self.platform_roles}\n" \
-                  f"{TOPICS_STR}: {self.topics}\n"
+                  f"{TOPICS_STR}: {self.topics}\n" \
+                  f"{ANSWER_FEEDBACK}: {self.answer_feedback}\n" \
+                  f"{INDUSTRY_SECTOR}: {self.industry_sector}\n"
 
         return yml_out
 
