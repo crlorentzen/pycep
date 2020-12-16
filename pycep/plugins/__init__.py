@@ -5,6 +5,7 @@ from pycep.plugins.spellcheck import spellcheck
 from pycep.plugins.linter import linter, package_questions, package_info, mapping_tags
 from pycep.plugins.parser import parser
 from pycep.plugins.new import new_module
+from pycep.plugins.convert import convert_ctfd_module
 
 
 def load_plugins(input_data, plugin, file_type, output, word_list, input_directory, export_dir, owner_id, input_file):
@@ -25,3 +26,5 @@ def load_plugins(input_data, plugin, file_type, output, word_list, input_directo
         mapping_tags(input_data)
     elif plugin == "new":
         new_module(output)
+    elif plugin == "convert":
+        convert_ctfd_module(input_directory)

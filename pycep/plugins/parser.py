@@ -257,12 +257,15 @@ def render_task(task_dict: dict,
                         raw_task_data += raw_heading_data
                 elif 'image-block' in task_line[TYPE_STRING]:
                     picture_id = id_generator()
-                    file_name = f"{output}{DIR_CHARACTER}{DIR_CHARACTER}media{DIR_CHARACTER}{picture_id}.png"
+                    img_ext = ".png"
+                    if "PNG" not in task_line[D_STR]['imageData']:
+                        img_ext = ".jpg"
+                    file_name = f"{output}{DIR_CHARACTER}{DIR_CHARACTER}media{DIR_CHARACTER}{picture_id}{img_ext}"
                     with open(file_name, 'wb') as picture_file:
                         test = task_line[D_STR]['imageData'][22:].encode('utf-8')
                         test2 = standard_b64decode(test)
                         picture_file.write(test2)
-                    raw_heading_data = f"![](..{DIR_CHARACTER}media{DIR_CHARACTER}{picture_id}.png)"
+                    raw_heading_data = f"![](..{DIR_CHARACTER}media{DIR_CHARACTER}{picture_id}{img_ext})"
                     if raw_heading_data:
                         raw_task_data += raw_heading_data
                 elif 'code-block' in task_line[TYPE_STRING]:

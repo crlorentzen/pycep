@@ -48,28 +48,28 @@ The spellcheck plugin searches for errors using a default spelling word list inc
 
 ## Parser plugin
 
-Currently the Parser plugin only supports exporting a package export json tar.gz file into a markdown output by default. It could be easy to implement a html output format as well and convert markdown back to export package portal format.
+The Parser plugin only supports exporting a package export json tar.gz file into a markdown output by default. It could be easy to implement a html output format as well and convert markdown back to export package portal format.
 
     cepcli.py -f Demo_Package_export.tar.gz -p parser -o /path/to/export/dir/
 
 
 ## Info plugin
 
-Currently the info plugin prints basic information about modules.
+The info plugin prints basic information about modules.
 
     cepcli.py -f Demo_Package_export.tar.gz -p package_info
 
 
 ## Compile Package plugin
 
-Currently the compile plugin compiles a package directory into an export package tar.gz format.
+The compile plugin compiles a package directory into an export package tar.gz format.
 
     cepcli.py -f package_module_directory -p compile -o package_module_export.tar.gz
 
 
 ## Task Question plugin
 
-Currently the info plugin prints basic information about modules.
+The info plugin prints basic information about modules.
 
     cepcli.py -f Demo_Package_export.tar.gz -p package_questions
 
@@ -77,6 +77,15 @@ Currently the info plugin prints basic information about modules.
 
 ## Mapping Tags plugin
 
-Currently the info plugin prints the mapping tags attached to a module in yaml output.
+Currently, the info plugin prints the mapping tags attached to a module in yaml output.
 
     cepcli.py -f Demo_Package_export.tar.gz -p mapping_tags
+
+
+## Convert Plugin
+
+The convert plugin currently supports ctfd formatted export of csv data as the input directory. It will take the csv files
+and create a tasks.md and tasks.yml for the input data. Other SCP structure data will not be generated at this time
+
+    cepcli.py -g /path/to/my/ctfd/dir/ 
+
