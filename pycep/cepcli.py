@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """The pycep cli python package."""
 # coding=utf-8
 import click
