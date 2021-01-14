@@ -17,7 +17,7 @@ SYSTEM_PLATFORM = platform.system()
 if SYSTEM_PLATFORM == "Windows":
     info("Windows Detected")
     DIR_CHARACTER = "\\"
-elif SYSTEM_PLATFORM != ("Linux" or "Darwin"):
+elif SYSTEM_PLATFORM not in ["Linux", "Darwin"]:
     error(f"Unsupported System type detected")
 NEW_LINE = "\n"
 
