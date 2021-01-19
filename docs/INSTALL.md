@@ -31,4 +31,4 @@ fi
 * Create or open the pycep virtual environment  
 `mkvirtualenv pycep` or `workon pycep`
 
-* Return to the [Python Install](/README.md#python-install) section of the README
+* Return to the [Pip Install](/README.md#pip-install) section of the README
