@@ -12,28 +12,30 @@ It's recommended to setup a dedicated virtual environment to install pycep. If y
 pip install.
 
 #### Create virtualenv**
-1. install virtualenv
+1. Install virtualenv
 
         pip3 install virtualenv
 
-2.   Create dedicated pycep virtualenv
+2. Create dedicated pycep virtualenv
 
-         virtualenv -p /usr/bin/python3.8 pycep-venv
+        virtualenv -p /usr/bin/python3.8 pycep-venv
 
-3.  Activate virtual environment
+3. Activate virtual environment
 
         source pycep-venv/bin/activate
 
 #### Python install
 
-    git clone https://github.com/SimSpace/pycep/ 
-    cd pycep pip install -r requirements.txt
+    git clone https://github.com/SimSpace/pycep/
+    cd pycep
+    pip install -r requirements.txt
     python setup.py install
 
 #### Pip install
 
-    git clone https://github.com/SimSpace/pycep/ 
-    cd pycep pip install -r requirements.txt 
+    git clone https://github.com/SimSpace/pycep/
+    cd pycep
+    pip install -r requirements.txt
     pip install .
 
 ## Basic pycep CLI usage
@@ -41,9 +43,9 @@ pip install.
 ### Example cli help output
 
     Usage: cepcli.py [OPTIONS]
-    
+
       Pycep Command line interface.
-    
+
     Options:
       -f, --input_file TEXT  The Package export tar.gz or the json file .
                              [required]
@@ -61,13 +63,13 @@ For more information on plugins please see [Plugin Guide](docs/PLUGINS.md)
 
 ## Current Features
 
--   File type support for json/tar.gz 
--   Modular python linter functionality 
+-   File type support for json/tar.gz
+-   Modular python linter functionality
 -   Verbose logging output with debug mode
 -   Basic cep linter support for CEP 2000, 2006, and 2007
 -   Automatic requirement document support linking for failed tests
 -   Process timestamp output in debug mode
--   Package Export level processing 
+-   Package Export level processing
 -   Version 8+ Package module exports
 -   Docker support
 -   Render from package export format to Markdown
@@ -75,6 +77,7 @@ For more information on plugins please see [Plugin Guide](docs/PLUGINS.md)
 -   Info plugin
 -   F strings used as much as possible
 -   From Markdown format to package export
+-   Mac OSX Support
 
 
 ### Coming Soon!
@@ -93,7 +96,7 @@ For more information on plugins please see [Plugin Guide](docs/PLUGINS.md)
 
 See the official guidelines [here](docs/CONTRIBUTING.md)!
 
-## Code of Conduct 
+## Code of Conduct
 In the interest of fostering an open and welcoming environment, we as contributors and maintainers pledge to making participation in our project and our community a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
 
 Please read the full [Code of Conduct](docs/CODE-OF-CONDUCT.md)!
